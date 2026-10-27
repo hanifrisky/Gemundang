@@ -7,7 +7,7 @@ export interface SpriteAsset {
   frames: string[]; // 1 URL for static, array of URLs for sequence
   frameRate?: number; // frames per second (default: 8)
   loop?: boolean; // default: true
-  category?: 'player' | 'npc' | 'obstacle' | 'decoration' | 'background';
+  category?: 'player' | 'npc' | 'obstacle' | 'decoration' | 'background' | 'platform';
 }
 
 export interface PlayerConfig {

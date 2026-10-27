@@ -435,21 +435,107 @@ export const presetBride: { idle: SpriteAsset; run: SpriteAsset } = {
   }
 };
 
-// Built-in library catalog
-export const BUILT_IN_SPRITES: SpriteAsset[] = [
-  presetGroom.idle,
-  presetGroom.run,
-  presetBride.idle,
-  presetBride.run,
-  priestSprite,
-  friendSprite,
-  chestSprite,
-  signpostSprite,
-  weddingArchSprite,
-  billboardSprite
-];
+// Extra Romantic Parallax Layers Default SVGs
+export const defaultNightSkyLayer = svgToDataUri(`
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 400" width="1000" height="400">
+    <defs>
+      <linearGradient id="nightSky" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#020617"/>
+        <stop offset="50%" stop-color="#0f172a"/>
+        <stop offset="100%" stop-color="#1e1b4b"/>
+      </linearGradient>
+    </defs>
+    <rect width="1000" height="400" fill="url(#nightSky)"/>
+    <!-- Glowing Moon -->
+    <circle cx="820" cy="80" r="32" fill="#fef08a" opacity="0.9"/>
+    <circle cx="820" cy="80" r="48" fill="#fef08a" opacity="0.2"/>
+    <!-- Twinkling Stars -->
+    <circle cx="120" cy="40" r="2" fill="#ffffff" opacity="0.8"/>
+    <circle cx="280" cy="90" r="1.5" fill="#ffffff" opacity="0.9"/>
+    <circle cx="450" cy="30" r="2.5" fill="#fde047" opacity="0.9"/>
+    <circle cx="620" cy="70" r="1.5" fill="#ffffff" opacity="0.7"/>
+    <circle cx="710" cy="120" r="2" fill="#ffffff" opacity="0.85"/>
+    <circle cx="180" cy="130" r="1.2" fill="#ffffff" opacity="0.6"/>
+    <circle cx="360" cy="110" r="1.8" fill="#ffffff" opacity="0.75"/>
+    <circle cx="530" cy="85" r="2" fill="#fde047" opacity="0.8"/>
+  </svg>
+`);
 
-// Preset Platform Textures
+export const defaultFairyLightsLayer = svgToDataUri(`
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 400" width="1000" height="400">
+    <!-- Hanging garden fairy lights wires -->
+    <path d="M0 40 Q250 90 500 50 T1000 40" stroke="#334155" stroke-width="1.5" fill="none"/>
+    <path d="M0 60 Q250 110 500 70 T1000 60" stroke="#334155" stroke-width="1" fill="none" opacity="0.6"/>
+    <!-- Glowing bulb lanterns -->
+    <circle cx="80" cy="52" r="5" fill="#fde047"/>
+    <circle cx="80" cy="52" r="10" fill="#fde047" opacity="0.3"/>
+    <circle cx="190" cy="72" r="5" fill="#fef08a"/>
+    <circle cx="190" cy="72" r="10" fill="#fef08a" opacity="0.3"/>
+    <circle cx="310" cy="80" r="5" fill="#fde047"/>
+    <circle cx="310" cy="80" r="10" fill="#fde047" opacity="0.3"/>
+    <circle cx="420" cy="65" r="5" fill="#fef08a"/>
+    <circle cx="420" cy="65" r="10" fill="#fef08a" opacity="0.3"/>
+    <circle cx="560" cy="52" r="5" fill="#fde047"/>
+    <circle cx="560" cy="52" r="10" fill="#fde047" opacity="0.3"/>
+    <circle cx="680" cy="66" r="5" fill="#fef08a"/>
+    <circle cx="680" cy="66" r="10" fill="#fef08a" opacity="0.3"/>
+    <circle cx="810" cy="72" r="5" fill="#fde047"/>
+    <circle cx="810" cy="72" r="10" fill="#fde047" opacity="0.3"/>
+    <circle cx="920" cy="55" r="5" fill="#fef08a"/>
+    <circle cx="920" cy="55" r="10" fill="#fef08a" opacity="0.3"/>
+  </svg>
+`);
+
+// Background Parallax Sprite Assets
+export const bgSkyAsset: SpriteAsset = {
+  id: 'bg-sky-sunset',
+  name: 'Latar Langit Sunset',
+  type: 'static',
+  frames: [defaultSkyLayer],
+  category: 'background'
+};
+
+export const bgMountainAsset: SpriteAsset = {
+  id: 'bg-mountain-purple',
+  name: 'Siluet Pegunungan Ungu',
+  type: 'static',
+  frames: [defaultMountainLayer],
+  category: 'background'
+};
+
+export const bgCloudAsset: SpriteAsset = {
+  id: 'bg-cloud-fluffy',
+  name: 'Lapisan Awan Berarak',
+  type: 'static',
+  frames: [defaultCloudLayer],
+  category: 'background'
+};
+
+export const bgTreeAsset: SpriteAsset = {
+  id: 'bg-tree-hills',
+  name: 'Deretan Bukit & Pohon Pinus',
+  type: 'static',
+  frames: [defaultTreeLayer],
+  category: 'background'
+};
+
+export const bgNightSkyAsset: SpriteAsset = {
+  id: 'bg-sky-night',
+  name: 'Langit Malam Bintang & Bulan',
+  type: 'static',
+  frames: [defaultNightSkyLayer],
+  category: 'background'
+};
+
+export const bgFairyLightsAsset: SpriteAsset = {
+  id: 'bg-fairy-lights',
+  name: 'Untaian Lampu Resepsi (Fairy Lights)',
+  type: 'static',
+  frames: [defaultFairyLightsLayer],
+  category: 'background'
+};
+
+// Preset Platform Textures (SVG Data URIs)
 export const presetGrassPlatformTexture = svgToDataUri(`
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 24" width="48" height="24">
     <rect x="0" y="0" width="48" height="24" fill="#78350f"/>
@@ -542,5 +628,78 @@ export const PRESET_PLATFORM_TEXTURES: PresetPlatformTexture[] = [
   { id: 'tex-stone', name: 'Batu Kerajaan', url: presetStonePlatformTexture, tileColor: '#64748b' },
   { id: 'tex-cloud', name: 'Awan Putih Lembut', url: presetCloudPlatformTexture, tileColor: '#38bdf8' },
   { id: 'tex-marble', name: 'Marmer Emas Resepsi', url: presetMarblePlatformTexture, tileColor: '#eab308' },
+];
+
+// Platform Sprite Assets for Library
+export const platGrassAsset: SpriteAsset = {
+  id: 'plat-grass',
+  name: 'Pijakan Rumput & Tanah',
+  type: 'static',
+  frames: [presetGrassPlatformTexture],
+  category: 'platform'
+};
+
+export const platWoodAsset: SpriteAsset = {
+  id: 'plat-wood',
+  name: 'Pijakan Papan Kayu Rustik',
+  type: 'static',
+  frames: [presetWoodPlatformTexture],
+  category: 'platform'
+};
+
+export const platStoneAsset: SpriteAsset = {
+  id: 'plat-stone',
+  name: 'Pijakan Batu Kerajaan',
+  type: 'static',
+  frames: [presetStonePlatformTexture],
+  category: 'platform'
+};
+
+export const platCloudAsset: SpriteAsset = {
+  id: 'plat-cloud',
+  name: 'Pijakan Awan Putih Lembut',
+  type: 'static',
+  frames: [presetCloudPlatformTexture],
+  category: 'platform'
+};
+
+export const platMarbleAsset: SpriteAsset = {
+  id: 'plat-marble',
+  name: 'Pijakan Marmer Emas Resepsi',
+  type: 'static',
+  frames: [presetMarblePlatformTexture],
+  category: 'platform'
+};
+
+// Built-in library catalog
+export const BUILT_IN_SPRITES: SpriteAsset[] = [
+  // Characters
+  presetGroom.idle,
+  presetGroom.run,
+  presetBride.idle,
+  presetBride.run,
+
+  // NPCs & Interactive Entities
+  priestSprite,
+  friendSprite,
+  chestSprite,
+  signpostSprite,
+  weddingArchSprite,
+  billboardSprite,
+
+  // Platform Textures (Included in default catalog)
+  platGrassAsset,
+  platWoodAsset,
+  platStoneAsset,
+  platCloudAsset,
+  platMarbleAsset,
+
+  // Background Parallax Layers (Included in default catalog)
+  bgSkyAsset,
+  bgNightSkyAsset,
+  bgMountainAsset,
+  bgCloudAsset,
+  bgTreeAsset,
+  bgFairyLightsAsset
 ];
 

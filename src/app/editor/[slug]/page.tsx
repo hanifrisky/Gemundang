@@ -6,6 +6,7 @@ import {
   PlatformerProject,
   InteractiveEntity,
   Platform,
+  ParallaxLayer,
   SpriteAsset,
   InteractionType
 } from '@/types/platformer';
@@ -13,7 +14,7 @@ import { getProjectForEdit, saveProject } from '@/lib/projectStorage';
 import AccessNotice from '@/components/auth/AccessNotice';
 import PlatformerEngine from '@/components/game/PlatformerEngine';
 import AssetLibraryModal from '@/components/asset-library/AssetLibraryModal';
-import { PRESET_PLATFORM_TEXTURES } from '@/lib/assetLibrary';
+import { PRESET_PLATFORM_TEXTURES, defaultCloudLayer } from '@/lib/assetLibrary';
 import {
   Play,
   Pause,
@@ -31,7 +32,9 @@ import {
   Edit3,
   Image as ImageIcon,
   Crosshair,
-  Upload
+  ChevronUp,
+  ChevronDown,
+  TreePine
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -51,11 +54,14 @@ function EditorContent() {
   // Editor camera position state
   const [editorCameraX, setEditorCameraX] = useState(0);
 
-  // Asset modal state
+  // Unified Asset modal state (covers player, entity, platform texture, and parallax background)
   const [assetModalTarget, setAssetModalTarget] = useState<{
-    target: 'player_idle' | 'player_run' | 'entity' | 'parallax';
+    target: 'player_idle' | 'player_run' | 'entity' | 'parallax' | 'platform';
     entityId?: string;
     layerId?: string;
+    platformId?: string;
+    categoryFilter?: 'player' | 'npc' | 'obstacle' | 'decoration' | 'platform' | 'background' | 'all';
+    title?: string;
   } | null>(null);
 
   const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
@@ -218,7 +224,58 @@ function EditorContent() {
     });
   };
 
-  // Handle Sprite selection from Library
+  // Parallax Layer mutations (Add, Remove, Move, Update)
+  const updateParallaxLayer = (id: string, updates: Partial<ParallaxLayer>) => {
+    setProject(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        world: {
+          ...prev.world,
+          parallaxLayers: prev.world.parallaxLayers.map(l => (l.id === id ? { ...l, ...updates } : l))
+        }
+      };
+    });
+  };
+
+  const addParallaxLayer = () => {
+    const newLayer: ParallaxLayer = {
+      id: `layer-${Date.now()}`,
+      name: `Layer Parallax ${project.world.parallaxLayers.length + 1}`,
+      imageUrl: defaultCloudLayer,
+      speedRatio: 0.3,
+      yOffset: 30,
+      editable_appearance: false
+    };
+    setProject(prev => prev ? { ...prev, world: { ...prev.world, parallaxLayers: [...prev.world.parallaxLayers, newLayer] } } : prev);
+  };
+
+  const removeParallaxLayer = (id: string) => {
+    setProject(prev => prev ? { ...prev, world: { ...prev.world, parallaxLayers: prev.world.parallaxLayers.filter(l => l.id !== id) } } : prev);
+  };
+
+  const moveParallaxLayer = (id: string, direction: 'up' | 'down') => {
+    setProject(prev => {
+      if (!prev) return prev;
+      const layers = [...prev.world.parallaxLayers];
+      const index = layers.findIndex(l => l.id === id);
+      if (index < 0) return prev;
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= layers.length) return prev;
+      const temp = layers[index];
+      layers[index] = layers[targetIndex];
+      layers[targetIndex] = temp;
+      return {
+        ...prev,
+        world: {
+          ...prev.world,
+          parallaxLayers: layers
+        }
+      };
+    });
+  };
+
+  // Handle selection from unified Asset Library Modal
   const handleSelectSprite = (sprite: SpriteAsset) => {
     if (!assetModalTarget) return;
 
@@ -228,21 +285,12 @@ function EditorContent() {
       setProject(prev => prev ? { ...prev, player: { ...prev.player, runSprite: sprite } } : prev);
     } else if (assetModalTarget.target === 'entity' && assetModalTarget.entityId) {
       updateEntity(assetModalTarget.entityId, { sprite });
+    } else if (assetModalTarget.target === 'platform' && assetModalTarget.platformId) {
+      updatePlatform(assetModalTarget.platformId, { tileTextureUrl: sprite.frames[0] });
+    } else if (assetModalTarget.target === 'parallax' && assetModalTarget.layerId) {
+      updateParallaxLayer(assetModalTarget.layerId, { imageUrl: sprite.frames[0] });
     }
     setAssetModalTarget(null);
-  };
-
-  // Handle file upload for platform texture
-  const handlePlatformTextureUpload = (platId: string, file: File) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      if (result) {
-        updatePlatform(platId, { tileTextureUrl: result });
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
   const selectedEntity = project.entities.find(e => e.id === selectedEntityId);
@@ -276,7 +324,7 @@ function EditorContent() {
           {/* Instant Test Play Mode Toggle */}
           <button
             onClick={() => setIsTestPlayMode(!isTestPlayMode)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg cursor-pointer ${
               isTestPlayMode
                 ? 'bg-rose-600 hover:bg-rose-500 text-white animate-pulse'
                 : 'bg-emerald-600 hover:bg-emerald-500 text-white'
@@ -349,7 +397,7 @@ function EditorContent() {
                 </span>
                 <button
                   onClick={() => setIsTestPlayMode(false)}
-                  className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium"
+                  className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium cursor-pointer"
                 >
                   Kembali ke Editor
                 </button>
@@ -433,7 +481,7 @@ function EditorContent() {
                     <button
                       type="button"
                       onClick={() => focusCameraOn(0)}
-                      className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                      className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer"
                       title="Ke Awal Level"
                     >
                       ⏮ Awal
@@ -441,7 +489,7 @@ function EditorContent() {
                     <button
                       type="button"
                       onClick={() => panCamera(-250)}
-                      className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                      className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer"
                       title="Geser 250px ke Kiri"
                     >
                       ◀ -250px
@@ -449,7 +497,7 @@ function EditorContent() {
                     <button
                       type="button"
                       onClick={() => focusCameraOn(project.player.startX ?? 100)}
-                      className="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-semibold transition"
+                      className="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-semibold transition cursor-pointer"
                       title="Pusatkan Kamera ke Karakter"
                     >
                       👤 Karakter
@@ -457,7 +505,7 @@ function EditorContent() {
                     <button
                       type="button"
                       onClick={() => panCamera(250)}
-                      className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                      className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer"
                       title="Geser 250px ke Kanan"
                     >
                       +250px ▶
@@ -465,7 +513,7 @@ function EditorContent() {
                     <button
                       type="button"
                       onClick={() => focusCameraOn(project.world.worldWidth)}
-                      className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                      className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer"
                       title="Ke Akhir Level"
                     >
                       Akhir ⏭
@@ -540,7 +588,7 @@ function EditorContent() {
                 }`}
               >
                 <Sparkles className="w-4 h-4" />
-                Parallax
+                Parallax ({project.world.parallaxLayers.length})
               </button>
             </div>
 
@@ -614,7 +662,7 @@ function EditorContent() {
                               e.stopPropagation();
                               focusCameraOn(ent.x);
                             }}
-                            className="p-1 rounded text-slate-400 hover:text-amber-300"
+                            className="p-1 rounded text-slate-400 hover:text-amber-300 cursor-pointer"
                             title="Fokus Kamera ke Objek"
                           >
                             <Crosshair className="w-3.5 h-3.5" />
@@ -625,7 +673,7 @@ function EditorContent() {
                               e.stopPropagation();
                               removeEntity(ent.id);
                             }}
-                            className="p-1 text-slate-500 hover:text-rose-400"
+                            className="p-1 text-slate-500 hover:text-rose-400 cursor-pointer"
                             title="Hapus Objek"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -645,7 +693,7 @@ function EditorContent() {
                         <button
                           type="button"
                           onClick={() => focusCameraOn(selectedEntity.x)}
-                          className="px-2 py-0.5 rounded bg-slate-800 text-[11px] text-amber-300 flex items-center gap-1 hover:bg-slate-700"
+                          className="px-2 py-0.5 rounded bg-slate-800 text-[11px] text-amber-300 flex items-center gap-1 hover:bg-slate-700 cursor-pointer"
                         >
                           <Crosshair className="w-3 h-3" /> Fokus Kamera
                         </button>
@@ -688,7 +736,12 @@ function EditorContent() {
                           <label className="block text-xs text-slate-400 mb-1">Sprite / Tampilan Objek</label>
                           <button
                             type="button"
-                            onClick={() => setAssetModalTarget({ target: 'entity', entityId: selectedEntity.id })}
+                            onClick={() => setAssetModalTarget({
+                              target: 'entity',
+                              entityId: selectedEntity.id,
+                              categoryFilter: 'npc',
+                              title: 'Pilih Sprite Objek / NPC'
+                            })}
                             className="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-amber-400 flex items-center justify-between text-xs text-slate-200 transition cursor-pointer"
                           >
                             <div className="flex items-center gap-2">
@@ -979,7 +1032,7 @@ function EditorContent() {
                                 e.stopPropagation();
                                 focusCameraOn(plat.x);
                               }}
-                              className="p-1 rounded text-slate-400 hover:text-sky-300"
+                              className="p-1 rounded text-slate-400 hover:text-sky-300 cursor-pointer"
                               title="Fokus Kamera ke Platform"
                             >
                               <Crosshair className="w-3.5 h-3.5" />
@@ -990,7 +1043,7 @@ function EditorContent() {
                                 e.stopPropagation();
                                 removePlatform(plat.id);
                               }}
-                              className="p-1 text-slate-500 hover:text-rose-400"
+                              className="p-1 text-slate-500 hover:text-rose-400 cursor-pointer"
                               title="Hapus Platform"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1010,7 +1063,7 @@ function EditorContent() {
                           <button
                             type="button"
                             onClick={() => focusCameraOn(selectedPlatform.x)}
-                            className="px-2 py-0.5 rounded bg-slate-800 text-[11px] text-sky-300 flex items-center gap-1 hover:bg-slate-700"
+                            className="px-2 py-0.5 rounded bg-slate-800 text-[11px] text-sky-300 flex items-center gap-1 hover:bg-slate-700 cursor-pointer"
                           >
                             <Crosshair className="w-3 h-3" /> Fokus Kamera
                           </button>
@@ -1041,7 +1094,7 @@ function EditorContent() {
                         {/* Dimensions (Width, Height) */}
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="block text-xs text-slate-400 mb-1">Lebar / Width ({selectedPlatform.width}px)</label>
+                            <label className="block text-xs text-slate-400 mb-1">Lebar ({selectedPlatform.width}px)</label>
                             <input
                               type="number"
                               min={40}
@@ -1052,7 +1105,7 @@ function EditorContent() {
                             />
                           </div>
                           <div>
-                            <label className="block text-xs text-slate-400 mb-1">Tinggi / Height ({selectedPlatform.height}px)</label>
+                            <label className="block text-xs text-slate-400 mb-1">Tinggi ({selectedPlatform.height}px)</label>
                             <input
                               type="number"
                               min={12}
@@ -1083,22 +1136,64 @@ function EditorContent() {
                           </div>
                         </div>
 
-                        {/* PLATFORM IMAGE & TEXTURE SETTINGS */}
-                        <div className="pt-2 border-t border-slate-700/80 space-y-2.5">
+                        {/* PLATFORM IMAGE & TEXTURE SETTINGS VIA UNIFIED ASSET LIBRARY */}
+                        <div className="pt-2 border-t border-slate-700/80 space-y-3">
                           <label className="block text-xs font-semibold text-slate-200">
-                            Gambar / Tekstur Pijakan (Platform Texture)
+                            Gambar / Tekstur Pijakan
                           </label>
 
-                          {/* Preset Textures */}
+                          {/* Unified Asset Modal Trigger */}
+                          <button
+                            type="button"
+                            onClick={() => setAssetModalTarget({
+                              target: 'platform',
+                              platformId: selectedPlatform.id,
+                              categoryFilter: 'platform',
+                              title: 'Pilih Tekstur / Gambar Pijakan'
+                            })}
+                            className="w-full p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-sky-400 flex items-center justify-between text-xs text-slate-200 transition cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2.5 truncate">
+                              <div
+                                className="w-7 h-7 rounded-lg border border-slate-600 shrink-0 flex items-center justify-center bg-slate-950"
+                                style={{
+                                  backgroundColor: selectedPlatform.tileColor || '#4ade80',
+                                  backgroundImage: selectedPlatform.tileTextureUrl ? `url(${selectedPlatform.tileTextureUrl})` : undefined,
+                                  backgroundSize: 'cover'
+                                }}
+                              >
+                                {!selectedPlatform.tileTextureUrl && <ImageIcon className="w-3.5 h-3.5 text-slate-400" />}
+                              </div>
+                              <span className="font-semibold text-white truncate">
+                                {selectedPlatform.tileTextureUrl ? 'Ganti Tekstur Pijakan' : 'Pilih Gambar dari Asset Library'}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-sky-400 font-bold shrink-0">
+                              Asset Library ➔
+                            </span>
+                          </button>
+
+                          {/* Reset to Plain Color */}
+                          {selectedPlatform.tileTextureUrl && (
+                            <button
+                              type="button"
+                              onClick={() => updatePlatform(selectedPlatform.id, { tileTextureUrl: undefined })}
+                              className="w-full py-1 text-xs text-rose-400 hover:bg-slate-800 rounded-lg transition text-center cursor-pointer"
+                            >
+                              Hapus Tekstur (Gunakan Warna Polos)
+                            </button>
+                          )}
+
+                          {/* Quick Preset Texture Chips */}
                           <div className="space-y-1">
-                            <span className="text-[11px] text-slate-400">Pilih Tekstur Cepat:</span>
+                            <span className="text-[11px] text-slate-400">Preset Cepat:</span>
                             <div className="grid grid-cols-2 gap-1.5">
                               {PRESET_PLATFORM_TEXTURES.map(tex => (
                                 <button
                                   key={tex.id}
                                   type="button"
                                   onClick={() => updatePlatform(selectedPlatform.id, { tileTextureUrl: tex.url, tileColor: tex.tileColor })}
-                                  className={`p-1.5 rounded-lg border text-[11px] flex items-center gap-1.5 text-left transition ${
+                                  className={`p-1.5 rounded-lg border text-[11px] flex items-center gap-1.5 text-left transition cursor-pointer ${
                                     selectedPlatform.tileTextureUrl === tex.url
                                       ? 'border-sky-400 bg-sky-500/20 text-white'
                                       : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'
@@ -1111,65 +1206,7 @@ function EditorContent() {
                                   <span className="truncate">{tex.name}</span>
                                 </button>
                               ))}
-
-                              {/* Plain Color button */}
-                              <button
-                                type="button"
-                                onClick={() => updatePlatform(selectedPlatform.id, { tileTextureUrl: undefined })}
-                                className={`p-1.5 rounded-lg border text-[11px] flex items-center gap-1.5 text-left transition ${
-                                  !selectedPlatform.tileTextureUrl
-                                    ? 'border-sky-400 bg-sky-500/20 text-white'
-                                    : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'
-                                }`}
-                              >
-                                <div
-                                  className="w-4 h-4 rounded shrink-0 border border-slate-600"
-                                  style={{ backgroundColor: selectedPlatform.tileColor || '#4ade80' }}
-                                />
-                                <span>Warna Polos</span>
-                              </button>
                             </div>
-                          </div>
-
-                          {/* Custom Texture URL */}
-                          <div className="space-y-1">
-                            <span className="text-[11px] text-slate-400">Atau Gunakan URL Gambar:</span>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                placeholder="https://... atau data:image/..."
-                                value={selectedPlatform.tileTextureUrl || ''}
-                                onChange={e => updatePlatform(selectedPlatform.id, { tileTextureUrl: e.target.value })}
-                                className="flex-1 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-400"
-                              />
-                              {selectedPlatform.tileTextureUrl && (
-                                <button
-                                  type="button"
-                                  onClick={() => updatePlatform(selectedPlatform.id, { tileTextureUrl: undefined })}
-                                  className="px-2 py-1.5 rounded bg-slate-800 text-xs text-rose-400 hover:bg-slate-700"
-                                  title="Hapus Tekstur"
-                                >
-                                  Reset
-                                </button>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Upload local image file */}
-                          <div>
-                            <label className="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 flex items-center justify-center gap-2 cursor-pointer transition">
-                              <Upload className="w-3.5 h-3.5 text-sky-400" />
-                              <span>Upload File Gambar Pijakan</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={e => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handlePlatformTextureUpload(selectedPlatform.id, file);
-                                }}
-                                className="hidden"
-                              />
-                            </label>
                           </div>
                         </div>
 
@@ -1199,7 +1236,7 @@ function EditorContent() {
                     <button
                       type="button"
                       onClick={() => focusCameraOn(project.player.startX ?? 100)}
-                      className="px-2 py-0.5 rounded bg-slate-800 text-[11px] text-amber-300 flex items-center gap-1 hover:bg-slate-700"
+                      className="px-2 py-0.5 rounded bg-slate-800 text-[11px] text-amber-300 flex items-center gap-1 hover:bg-slate-700 cursor-pointer"
                     >
                       <Crosshair className="w-3 h-3" /> Fokus Kamera
                     </button>
@@ -1218,7 +1255,7 @@ function EditorContent() {
                           setSelectedEntityId(null);
                           setSelectedPlatformId(null);
                         }}
-                        className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-200 hover:bg-purple-500/30 font-medium"
+                        className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-200 hover:bg-purple-500/30 font-medium cursor-pointer"
                       >
                         Pilih di Canvas
                       </button>
@@ -1307,7 +1344,11 @@ function EditorContent() {
                       <label className="block text-xs text-slate-400 mb-1">Sprite Animasi Diam (Idle State)</label>
                       <button
                         type="button"
-                        onClick={() => setAssetModalTarget({ target: 'player_idle' })}
+                        onClick={() => setAssetModalTarget({
+                          target: 'player_idle',
+                          categoryFilter: 'player',
+                          title: 'Pilih Sprite Karakter (Idle)'
+                        })}
                         className="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-amber-400 flex items-center justify-between text-xs text-slate-200 transition cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
@@ -1328,7 +1369,11 @@ function EditorContent() {
                       <label className="block text-xs text-slate-400 mb-1">Sprite Animasi Lari (Run Sequence)</label>
                       <button
                         type="button"
-                        onClick={() => setAssetModalTarget({ target: 'player_run' })}
+                        onClick={() => setAssetModalTarget({
+                          target: 'player_run',
+                          categoryFilter: 'player',
+                          title: 'Pilih Sprite Karakter (Run)'
+                        })}
                         className="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-amber-400 flex items-center justify-between text-xs text-slate-200 transition cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
@@ -1348,54 +1393,141 @@ function EditorContent() {
                 </div>
               )}
 
-              {/* TAB 4: PARALLAX LAYERS */}
+              {/* TAB 4: PARALLAX BACKGROUND LAYERS (ADD, REMOVE, CHANGE IMAGE) */}
               {activeTab === 'parallax' && (
                 <div className="space-y-5">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    Lapisan Latar Belakang Parallax
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                        Lapisan Background Parallax ({project.world.parallaxLayers.length})
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Urutan lapisan dari belakang ke depan
+                      </span>
+                    </div>
 
-                  <div className="space-y-3">
-                    {project.world.parallaxLayers.map((layer) => (
-                      <div key={layer.id} className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/60 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-white">{layer.name}</span>
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-amber-400 font-mono">
-                            Kecepatan: {layer.speedRatio}x
-                          </span>
+                    <button
+                      type="button"
+                      onClick={addParallaxLayer}
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-amber-400 flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> + Tambah Layer
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {project.world.parallaxLayers.map((layer, index) => (
+                      <div
+                        key={layer.id}
+                        className="p-3.5 bg-slate-800/50 rounded-2xl border border-slate-700/70 space-y-3 shadow-md"
+                      >
+                        {/* Layer Title & Order Actions */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-1">
+                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">
+                              #{index + 1}
+                            </span>
+                            <input
+                              type="text"
+                              value={layer.name}
+                              onChange={e => updateParallaxLayer(layer.id, { name: e.target.value })}
+                              className="px-2 py-1 rounded bg-slate-900 border border-slate-700 text-xs text-white font-semibold flex-1 focus:outline-none focus:border-amber-400"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            {/* Move Up/Down Buttons */}
+                            <button
+                              type="button"
+                              disabled={index === 0}
+                              onClick={() => moveParallaxLayer(layer.id, 'up')}
+                              className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                              title="Pindahkan Layer ke Belakang"
+                            >
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={index === project.world.parallaxLayers.length - 1}
+                              onClick={() => moveParallaxLayer(layer.id, 'down')}
+                              className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                              title="Pindahkan Layer ke Depan"
+                            >
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </button>
+                            {/* Delete Button */}
+                            <button
+                              type="button"
+                              onClick={() => removeParallaxLayer(layer.id)}
+                              className="p-1 rounded bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400 transition cursor-pointer ml-1"
+                              title="Hapus Layer Background Ini"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="h-16 w-full rounded-lg bg-slate-950 border border-slate-800 overflow-hidden relative">
-                          <img
-                            src={layer.imageUrl}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
+                        {/* Image Preview & Change Image Button */}
+                        <div className="space-y-1.5">
+                          <div className="h-20 w-full rounded-xl bg-slate-950 border border-slate-800 overflow-hidden relative flex items-center justify-center">
+                            <img
+                              src={layer.imageUrl}
+                              alt={layer.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setAssetModalTarget({
+                              target: 'parallax',
+                              layerId: layer.id,
+                              categoryFilter: 'background',
+                              title: `Pilih Gambar Background: ${layer.name}`
+                            })}
+                            className="w-full py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-amber-400 text-xs text-amber-300 font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                          >
+                            <TreePine className="w-3.5 h-3.5" />
+                            <span>Ganti Gambar Background (Asset Library)</span>
+                          </button>
                         </div>
 
-                        <div>
-                          <label className="block text-[11px] text-slate-400 mb-1">Rasio Gerak (Speed Ratio: {layer.speedRatio})</label>
-                          <input
-                            type="range"
-                            min={0}
-                            max={1}
-                            step={0.05}
-                            value={layer.speedRatio}
-                            onChange={e => {
-                              const val = parseFloat(e.target.value);
-                              setProject(prev => {
-                                if (!prev) return prev;
-                                return {
-                                  ...prev,
-                                  world: {
-                                    ...prev.world,
-                                    parallaxLayers: prev.world.parallaxLayers.map(l => l.id === layer.id ? { ...l, speedRatio: val } : l)
-                                  }
-                                };
-                              });
-                            }}
-                            className="w-full accent-amber-400 cursor-pointer"
-                          />
+                        {/* Parallax Sliders: Speed & Y Offset */}
+                        <div className="space-y-2 pt-1 border-t border-slate-700/50">
+                          <div>
+                            <div className="flex justify-between items-center text-[11px] text-slate-400 mb-1">
+                              <span>Kecepatan Gerak Parallax:</span>
+                              <span className="font-mono text-amber-400 font-bold">{layer.speedRatio}x</span>
+                            </div>
+                            <input
+                              type="range"
+                              min={0}
+                              max={1}
+                              step={0.05}
+                              value={layer.speedRatio}
+                              onChange={e => updateParallaxLayer(layer.id, { speedRatio: parseFloat(e.target.value) })}
+                              className="w-full accent-amber-400 cursor-pointer h-1.5 bg-slate-900 rounded"
+                            />
+                            <span className="text-[10px] text-slate-500">
+                              0x = Diam (Langit jauh), 1x = Secepat tanah
+                            </span>
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between items-center text-[11px] text-slate-400 mb-1">
+                              <span>Posisi Vertikal (Y Offset):</span>
+                              <span className="font-mono text-amber-400 font-bold">{layer.yOffset || 0}px</span>
+                            </div>
+                            <input
+                              type="range"
+                              min={-100}
+                              max={200}
+                              step={5}
+                              value={layer.yOffset || 0}
+                              onChange={e => updateParallaxLayer(layer.id, { yOffset: parseInt(e.target.value) || 0 })}
+                              className="w-full accent-amber-400 cursor-pointer h-1.5 bg-slate-900 rounded"
+                            />
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1407,12 +1539,14 @@ function EditorContent() {
         )}
       </div>
 
-      {/* ASSET LIBRARY MODAL PICKER */}
+      {/* UNIFIED ASSET LIBRARY MODAL PICKER */}
       {assetModalTarget && (
         <AssetLibraryModal
           isOpen={true}
           onClose={() => setAssetModalTarget(null)}
           onSelectSprite={handleSelectSprite}
+          title={assetModalTarget.title || 'Pilih Asset dari Library'}
+          categoryFilter={assetModalTarget.categoryFilter || 'all'}
         />
       )}
     </div>
