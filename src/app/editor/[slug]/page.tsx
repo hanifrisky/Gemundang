@@ -9,13 +9,19 @@ import {
   ParallaxLayer,
   SpriteAsset,
   InteractionType,
-  PlayerColliderConfig
+  PlayerColliderConfig,
+  getPlayerHitboxBounds,
+  SoundAsset,
+  SoundEventType
 } from '@/types/platformer';
 import { getProjectForEdit, saveProject } from '@/lib/projectStorage';
 import AccessNotice from '@/components/auth/AccessNotice';
 import PlatformerEngine from '@/components/game/PlatformerEngine';
 import AssetLibraryModal from '@/components/asset-library/AssetLibraryModal';
+import SoundLibraryModal from '@/components/sound-library/SoundLibraryModal';
 import { PRESET_PLATFORM_TEXTURES, defaultCloudLayer } from '@/lib/assetLibrary';
+import { DEFAULT_PROJECT_AUDIO, getSoundEventInfo } from '@/lib/soundLibrary';
+import { audioEngine } from '@/lib/audioEngine';
 import {
   Play,
   Pause,
@@ -36,7 +42,15 @@ import {
   ChevronUp,
   ChevronDown,
   TreePine,
-  Shield
+  Shield,
+  RotateCcw,
+  Volume2,
+  Music,
+  Footprints,
+  ArrowUp,
+  Coffee,
+  Bell,
+  Square
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -46,7 +60,7 @@ function EditorContent() {
 
   const [project, setProject] = useState<PlatformerProject | null>(null);
   const [isTestPlayMode, setIsTestPlayMode] = useState(false);
-  const [activeTab, setActiveTab] = useState<'entities' | 'world' | 'player' | 'parallax'>('entities');
+  const [activeTab, setActiveTab] = useState<'entities' | 'world' | 'player' | 'parallax' | 'audio'>('entities');
 
   // Selected item state
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
@@ -65,6 +79,10 @@ function EditorContent() {
     categoryFilter?: 'character' | 'player' | 'npc' | 'obstacle' | 'decoration' | 'platform' | 'background' | 'all';
     title?: string;
   } | null>(null);
+
+  // Sound selection modal state
+  const [soundModalCategory, setSoundModalCategory] = useState<SoundEventType | null>(null);
+  const [sidebarPlayingSound, setSidebarPlayingSound] = useState<string | null>(null);
 
   const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
   const [accessError, setAccessError] = useState<'unauthenticated' | 'forbidden' | 'not_found' | null>(null);
@@ -245,13 +263,11 @@ function EditorContent() {
   const updatePlayerCollider = (colliderUpdates: Partial<PlayerColliderConfig>) => {
     setProject(prev => {
       if (!prev) return prev;
-      const currentWidth = prev.player.width ?? 44;
-      const currentHeight = prev.player.height ?? 60;
       const currentCollider = prev.player.collider || {
-        width: currentWidth,
-        height: currentHeight,
-        offsetX: 0,
-        offsetY: 0
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0
       };
 
       return {
@@ -334,6 +350,60 @@ function EditorContent() {
       updateParallaxLayer(assetModalTarget.layerId, { imageUrl: sprite.frames[0] });
     }
     setAssetModalTarget(null);
+  };
+
+  // Audio configuration updates
+  const updateProjectAudio = (category: SoundEventType, sound: SoundAsset | undefined) => {
+    setProject(prev => {
+      if (!prev) return prev;
+      const currentAudio = prev.audio || { ...DEFAULT_PROJECT_AUDIO };
+      return {
+        ...prev,
+        audio: {
+          ...currentAudio,
+          [category]: sound
+        }
+      };
+    });
+  };
+
+  const updateAudioVolume = (category: SoundEventType, volume: number) => {
+    setProject(prev => {
+      if (!prev) return prev;
+      const currentAudio = prev.audio || { ...DEFAULT_PROJECT_AUDIO };
+      const currentSound = currentAudio[category] || DEFAULT_PROJECT_AUDIO[category];
+      if (!currentSound) return prev;
+      return {
+        ...prev,
+        audio: {
+          ...currentAudio,
+          [category]: {
+            ...currentSound,
+            volume
+          }
+        }
+      };
+    });
+  };
+
+  const resetAudioToDefault = (category: SoundEventType) => {
+    updateProjectAudio(category, DEFAULT_PROJECT_AUDIO[category]);
+  };
+
+  const handleToggleSidebarAudioPreview = (category: SoundEventType, sound?: SoundAsset) => {
+    const soundToPlay = sound || (project?.audio?.[category] ?? DEFAULT_PROJECT_AUDIO[category]);
+    if (!soundToPlay) return;
+
+    if (sidebarPlayingSound === soundToPlay.id || sidebarPlayingSound === category) {
+      audioEngine.stopPreview();
+      setSidebarPlayingSound(null);
+      return;
+    }
+
+    setSidebarPlayingSound(soundToPlay.id || category);
+    audioEngine.previewSound(soundToPlay, () => {
+      setSidebarPlayingSound(null);
+    });
   };
 
   const selectedEntity = project.entities.find(e => e.id === selectedEntityId);
@@ -588,10 +658,10 @@ function EditorContent() {
         {!isTestPlayMode && (
           <aside className="w-96 border-l border-slate-800 bg-slate-900 flex flex-col shrink-0 overflow-hidden">
             {/* Sidebar Tabs */}
-            <div className="flex border-b border-slate-800 px-4 pt-3 gap-4 text-xs font-bold">
+            <div className="flex border-b border-slate-800 px-4 pt-3 gap-3 text-xs font-bold overflow-x-auto scrollbar-none">
               <button
                 onClick={() => setActiveTab('entities')}
-                className={`pb-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+                className={`pb-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
                   activeTab === 'entities'
                     ? 'border-amber-400 text-amber-400'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -602,18 +672,18 @@ function EditorContent() {
               </button>
               <button
                 onClick={() => setActiveTab('world')}
-                className={`pb-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+                className={`pb-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
                   activeTab === 'world'
                     ? 'border-amber-400 text-amber-400'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <Sliders className="w-4 h-4" />
-                Tanah & Pijakan
+                Pijakan
               </button>
               <button
                 onClick={() => setActiveTab('player')}
-                className={`pb-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+                className={`pb-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
                   activeTab === 'player'
                     ? 'border-amber-400 text-amber-400'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -624,7 +694,7 @@ function EditorContent() {
               </button>
               <button
                 onClick={() => setActiveTab('parallax')}
-                className={`pb-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+                className={`pb-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
                   activeTab === 'parallax'
                     ? 'border-amber-400 text-amber-400'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -632,6 +702,17 @@ function EditorContent() {
               >
                 <Sparkles className="w-4 h-4" />
                 Parallax ({project.world.parallaxLayers.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('audio')}
+                className={`pb-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                  activeTab === 'audio'
+                    ? 'border-amber-400 text-amber-400'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Volume2 className="w-4 h-4" />
+                Audio
               </button>
             </div>
 
@@ -771,6 +852,55 @@ function EditorContent() {
                               onChange={e => updateEntity(selectedEntity.id, { y: parseInt(e.target.value) || 0 })}
                               className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400"
                             />
+                          </div>
+                        </div>
+
+                        {/* Ukuran Objek (Width & Height) & Reset */}
+                        <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-750 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-slate-300">
+                              Ukuran Objek ({selectedEntity.width} x {selectedEntity.height} px)
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const defaultW = selectedEntity.type === 'npc' ? 48 : 48;
+                                const defaultH = selectedEntity.type === 'npc' ? 64 : 48;
+                                updateEntity(selectedEntity.id, { width: defaultW, height: defaultH });
+                              }}
+                              className="text-[10px] text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                              title="Reset ukuran objek ke default"
+                            >
+                              <RotateCcw className="w-3 h-3" /> Reset Ukuran
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[10px] text-slate-400 mb-0.5">Lebar (Width px)</label>
+                              <input
+                                type="number"
+                                min={16}
+                                max={400}
+                                value={selectedEntity.width}
+                                onChange={e =>
+                                  updateEntity(selectedEntity.id, { width: Math.max(16, parseInt(e.target.value) || 16) })
+                                }
+                                className="w-full px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] text-slate-400 mb-0.5">Tinggi (Height px)</label>
+                              <input
+                                type="number"
+                                min={16}
+                                max={400}
+                                value={selectedEntity.height}
+                                onChange={e =>
+                                  updateEntity(selectedEntity.id, { height: Math.max(16, parseInt(e.target.value) || 16) })
+                                }
+                                className="w-full px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                              />
+                            </div>
                           </div>
                         </div>
 
@@ -1335,211 +1465,245 @@ function EditorContent() {
                     </div>
                   </div>
 
-                  {/* Player Visual Image Dimensions */}
+                  {/* Player Visual Image Dimensions with Reset */}
                   <div className="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60 space-y-3">
-                    <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                      <ImageIcon className="w-3.5 h-3.5 text-amber-400" /> Ukuran Gambar Visual Karakter
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-amber-400" /> Ukuran Gambar Visual Karakter
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => updatePlayerDimensions(44, 60)}
+                        className="text-[10px] text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                        title="Reset ukuran gambar ke default (44x60 px)"
+                      >
+                        <RotateCcw className="w-3 h-3" /> Reset Ukuran (44x60)
+                      </button>
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Lebar Gambar (px)</label>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="text-[11px] text-slate-400">Lebar Gambar</label>
+                          <span className="text-[10px] font-mono text-amber-400 font-semibold">{project.player.width ?? 44}px</span>
+                        </div>
                         <input
                           type="number"
                           min={16}
-                          max={200}
+                          max={300}
                           value={project.player.width ?? 44}
                           onChange={e =>
                             updatePlayerDimensions(parseInt(e.target.value) || 44, project.player.height ?? 60)
                           }
-                          className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400"
+                          className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Tinggi Gambar (px)</label>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="text-[11px] text-slate-400">Tinggi Gambar</label>
+                          <span className="text-[10px] font-mono text-amber-400 font-semibold">{project.player.height ?? 60}px</span>
+                        </div>
                         <input
                           type="number"
                           min={16}
-                          max={200}
+                          max={300}
                           value={project.player.height ?? 60}
                           onChange={e =>
                             updatePlayerDimensions(project.player.width ?? 44, parseInt(e.target.value) || 60)
                           }
-                          className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400"
+                          className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Player Collision Detection (Hitbox) & Offset Configuration */}
-                  <div className="p-3.5 bg-emerald-500/10 rounded-xl border border-emerald-500/30 space-y-3.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Shield className="w-4 h-4 text-emerald-400" />
-                        <span className="text-xs font-bold text-emerald-300">
-                          Collision Detection (Area Tabrakan)
-                        </span>
-                      </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-semibold">
-                        Hitbox
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
-                      Atur ukuran kotak tabrakan (*hitbox*) dan *offset* posisinya relatif terhadap gambar karakter agar pijakan kaki dan dinding terasa pas.
-                    </p>
-
-                    {/* Quick Preset Buttons */}
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const w = project.player.width ?? 44;
-                          const h = project.player.height ?? 60;
-                          updatePlayerCollider({
-                            width: w,
-                            height: h,
-                            offsetX: 0,
-                            offsetY: 0
-                          });
-                        }}
-                        className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 hover:text-white border border-slate-700 cursor-pointer font-medium"
-                      >
-                        Sama dengan Gambar (100%)
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const w = project.player.width ?? 44;
-                          const h = project.player.height ?? 60;
-                          const cW = Math.round(w * 0.72);
-                          const cH = Math.round(h * 0.9);
-                          const offX = Math.round((w - cW) / 2);
-                          const offY = Math.round(h - cH);
-                          updatePlayerCollider({
-                            width: cW,
-                            height: cH,
-                            offsetX: offX,
-                            offsetY: offY
-                          });
-                        }}
-                        className="px-2 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-[10px] text-emerald-300 border border-emerald-500/40 cursor-pointer font-medium"
-                      >
-                        Presisi Humanoid (Rekomendasi)
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const h = project.player.height ?? 60;
-                          const curH = project.player.collider?.height ?? h;
-                          updatePlayerCollider({
-                            offsetY: Math.max(0, h - curH)
-                          });
-                        }}
-                        className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 hover:text-white border border-slate-700 cursor-pointer font-medium"
-                      >
-                        Ratakan Kaki ke Bawah
-                      </button>
-                    </div>
-
-                    {/* Collider Dimensions */}
-                    <div className="space-y-3 pt-1">
-                      {/* Collider Width */}
-                      <div>
-                        <div className="flex justify-between items-center text-[11px] text-slate-300 mb-1">
-                          <span>Lebar Hitbox (Width)</span>
-                          <span className="font-mono text-emerald-400 font-bold">
-                            {project.player.collider?.width ?? (project.player.width ?? 44)} px
+                  {/* Player Collision Detection (Hitbox Offset Margin/Padding) */}
+                  {(() => {
+                    const hitboxInfo = getPlayerHitboxBounds(project.player);
+                    return (
+                      <div className="p-3.5 bg-emerald-500/10 rounded-xl border border-emerald-500/30 space-y-3.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <Shield className="w-4 h-4 text-emerald-400" />
+                            <span className="text-xs font-bold text-emerald-300">
+                              Hitbox Offset (Area Tabrakan)
+                            </span>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-semibold">
+                            {hitboxInfo.hitboxWidth} x {hitboxInfo.hitboxHeight} px
                           </span>
                         </div>
-                        <input
-                          type="range"
-                          min={10}
-                          max={120}
-                          value={project.player.collider?.width ?? (project.player.width ?? 44)}
-                          onChange={e => updatePlayerCollider({ width: parseInt(e.target.value) || 10 })}
-                          className="w-full accent-emerald-400 cursor-pointer"
-                        />
-                      </div>
 
-                      {/* Collider Height */}
-                      <div>
-                        <div className="flex justify-between items-center text-[11px] text-slate-300 mb-1">
-                          <span>Tinggi Hitbox (Height)</span>
-                          <span className="font-mono text-emerald-400 font-bold">
-                            {project.player.collider?.height ?? (project.player.height ?? 60)} px
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          min={10}
-                          max={140}
-                          value={project.player.collider?.height ?? (project.player.height ?? 60)}
-                          onChange={e => updatePlayerCollider({ height: parseInt(e.target.value) || 10 })}
-                          className="w-full accent-emerald-400 cursor-pointer"
-                        />
-                      </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          Atur offset tepi tabrakan dari gambar (seperti padding/margin). Nilai <b>negatif (-)</b> memperkecil hitbox ke dalam gambar, nilai <b>positif (+)</b> memperlebar melebihi gambar. Reset ke 0 tepat mengikuti ukuran gambar.
+                        </p>
 
-                      {/* Offset X (Horizontal) */}
-                      <div>
-                        <div className="flex justify-between items-center text-[11px] text-slate-300 mb-1">
-                          <span>Offset X (Geser Horizontal dari Gambar)</span>
-                          <span className="font-mono text-emerald-400 font-bold">
-                            {project.player.collider?.offsetX ?? 0} px
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="range"
-                            min={-40}
-                            max={40}
-                            value={project.player.collider?.offsetX ?? 0}
-                            onChange={e => updatePlayerCollider({ offsetX: parseInt(e.target.value) || 0 })}
-                            className="w-full accent-emerald-400 cursor-pointer"
-                          />
-                          <input
-                            type="number"
-                            value={project.player.collider?.offsetX ?? 0}
-                            onChange={e => updatePlayerCollider({ offsetX: parseInt(e.target.value) || 0 })}
-                            className="w-14 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-center text-white"
-                          />
-                        </div>
-                        <span className="text-[10px] text-slate-500">
-                          Nilai negatif menggeser ke kiri, nilai positif menggeser ke kanan.
-                        </span>
-                      </div>
+                        {/* Quick Preset Buttons */}
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updatePlayerCollider({
+                                left: 0,
+                                right: 0,
+                                top: 0,
+                                bottom: 0
+                              });
+                            }}
+                            className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-amber-300 hover:text-white border border-slate-700 flex items-center gap-1 cursor-pointer font-medium"
+                          >
+                            <RotateCcw className="w-3 h-3 text-amber-400" />
+                            Reset ke 0 (Ikuti Gambar)
+                          </button>
 
-                      {/* Offset Y (Vertical) */}
-                      <div>
-                        <div className="flex justify-between items-center text-[11px] text-slate-300 mb-1">
-                          <span>Offset Y (Geser Vertikal dari Gambar)</span>
-                          <span className="font-mono text-emerald-400 font-bold">
-                            {project.player.collider?.offsetY ?? 0} px
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updatePlayerCollider({
+                                left: -6,
+                                right: -6,
+                                top: -4,
+                                bottom: 0
+                              });
+                            }}
+                            className="px-2 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-[10px] text-emerald-300 border border-emerald-500/40 cursor-pointer font-medium"
+                          >
+                            Presisi Humanoid (-6, -6, -4, 0)
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updatePlayerCollider({
+                                bottom: 0
+                              });
+                            }}
+                            className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 hover:text-white border border-slate-700 cursor-pointer font-medium"
+                          >
+                            Ratakan Kaki (Bottom: 0)
+                          </button>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="range"
-                            min={-40}
-                            max={40}
-                            value={project.player.collider?.offsetY ?? 0}
-                            onChange={e => updatePlayerCollider({ offsetY: parseInt(e.target.value) || 0 })}
-                            className="w-full accent-emerald-400 cursor-pointer"
-                          />
-                          <input
-                            type="number"
-                            value={project.player.collider?.offsetY ?? 0}
-                            onChange={e => updatePlayerCollider({ offsetY: parseInt(e.target.value) || 0 })}
-                            className="w-14 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-center text-white"
-                          />
+
+                        {/* 4 Offset Sliders: Left, Right, Top, Bottom */}
+                        <div className="space-y-3 pt-1">
+                          {/* Offset Kiri (Left) */}
+                          <div>
+                            <div className="flex justify-between items-center text-[11px] text-slate-300 mb-1">
+                              <span>Offset Kiri (Left)</span>
+                              <span className="font-mono text-emerald-400 font-bold">
+                                {hitboxInfo.offLeft > 0 ? `+${hitboxInfo.offLeft}` : hitboxInfo.offLeft} px
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="range"
+                                min={-40}
+                                max={40}
+                                value={hitboxInfo.offLeft}
+                                onChange={e => updatePlayerCollider({ left: parseInt(e.target.value) || 0 })}
+                                className="w-full accent-emerald-400 cursor-pointer"
+                              />
+                              <input
+                                type="number"
+                                value={hitboxInfo.offLeft}
+                                onChange={e => updatePlayerCollider({ left: parseInt(e.target.value) || 0 })}
+                                className="w-14 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-center text-white"
+                              />
+                            </div>
+                            <span className="text-[10px] text-slate-500">
+                              (-) Masuk ke dalam | (+) Melebihi ke kiri
+                            </span>
+                          </div>
+
+                          {/* Offset Kanan (Right) */}
+                          <div>
+                            <div className="flex justify-between items-center text-[11px] text-slate-300 mb-1">
+                              <span>Offset Kanan (Right)</span>
+                              <span className="font-mono text-emerald-400 font-bold">
+                                {hitboxInfo.offRight > 0 ? `+${hitboxInfo.offRight}` : hitboxInfo.offRight} px
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="range"
+                                min={-40}
+                                max={40}
+                                value={hitboxInfo.offRight}
+                                onChange={e => updatePlayerCollider({ right: parseInt(e.target.value) || 0 })}
+                                className="w-full accent-emerald-400 cursor-pointer"
+                              />
+                              <input
+                                type="number"
+                                value={hitboxInfo.offRight}
+                                onChange={e => updatePlayerCollider({ right: parseInt(e.target.value) || 0 })}
+                                className="w-14 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-center text-white"
+                              />
+                            </div>
+                            <span className="text-[10px] text-slate-500">
+                              (-) Masuk ke dalam | (+) Melebihi ke kanan
+                            </span>
+                          </div>
+
+                          {/* Offset Atas (Top) */}
+                          <div>
+                            <div className="flex justify-between items-center text-[11px] text-slate-300 mb-1">
+                              <span>Offset Atas (Top / Kepala)</span>
+                              <span className="font-mono text-emerald-400 font-bold">
+                                {hitboxInfo.offTop > 0 ? `+${hitboxInfo.offTop}` : hitboxInfo.offTop} px
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="range"
+                                min={-40}
+                                max={40}
+                                value={hitboxInfo.offTop}
+                                onChange={e => updatePlayerCollider({ top: parseInt(e.target.value) || 0 })}
+                                className="w-full accent-emerald-400 cursor-pointer"
+                              />
+                              <input
+                                type="number"
+                                value={hitboxInfo.offTop}
+                                onChange={e => updatePlayerCollider({ top: parseInt(e.target.value) || 0 })}
+                                className="w-14 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-center text-white"
+                              />
+                            </div>
+                            <span className="text-[10px] text-slate-500">
+                              (-) Masuk ke dalam | (+) Melebihi ke atas
+                            </span>
+                          </div>
+
+                          {/* Offset Bawah (Bottom) */}
+                          <div>
+                            <div className="flex justify-between items-center text-[11px] text-slate-300 mb-1">
+                              <span>Offset Bawah (Bottom / Kaki)</span>
+                              <span className="font-mono text-emerald-400 font-bold">
+                                {hitboxInfo.offBottom > 0 ? `+${hitboxInfo.offBottom}` : hitboxInfo.offBottom} px
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="range"
+                                min={-40}
+                                max={40}
+                                value={hitboxInfo.offBottom}
+                                onChange={e => updatePlayerCollider({ bottom: parseInt(e.target.value) || 0 })}
+                                className="w-full accent-emerald-400 cursor-pointer"
+                              />
+                              <input
+                                type="number"
+                                value={hitboxInfo.offBottom}
+                                onChange={e => updatePlayerCollider({ bottom: parseInt(e.target.value) || 0 })}
+                                className="w-14 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-center text-white"
+                              />
+                            </div>
+                            <span className="text-[10px] text-slate-500">
+                              (-) Kaki naik | (+) Kaki menembus ke bawah | (0) Tepat di bawah gambar
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-[10px] text-slate-500">
-                          Nilai positif menggeser hitbox ke bawah (kaki menapak tanah).
-                        </span>
                       </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
 
                   {/* Jump Toggle */}
                   <div className="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60 space-y-2">
@@ -1810,6 +1974,138 @@ function EditorContent() {
                   </div>
                 </div>
               )}
+
+              {/* TAB 5: AUDIO & SOUND EFFECTS */}
+              {activeTab === 'audio' && (
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <Volume2 className="w-4 h-4 text-amber-400" />
+                        Pengaturan Audio Permainan
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Atur musik latar dan efek suara interaktif game
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3.5">
+                    {(['bgm', 'jump', 'footstep', 'idle', 'proximity', 'interact'] as SoundEventType[]).map((cat) => {
+                      const info = getSoundEventInfo(cat);
+                      const currentSound = project.audio?.[cat] ?? DEFAULT_PROJECT_AUDIO[cat];
+                      const soundName = currentSound?.name || 'Default Web Audio Synth';
+                      const soundVolume = currentSound?.volume ?? 0.85;
+                      const isCustom = !!currentSound?.url;
+                      const isPlaying = sidebarPlayingSound === (currentSound?.id || cat);
+
+                      return (
+                        <div
+                          key={cat}
+                          className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5 space-y-3 hover:border-slate-600 transition"
+                        >
+                          {/* Event Title & Description */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-lg bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400 shrink-0">
+                                {cat === 'bgm' && <Music className="w-3.5 h-3.5" />}
+                                {cat === 'jump' && <ArrowUp className="w-3.5 h-3.5" />}
+                                {cat === 'footstep' && <Footprints className="w-3.5 h-3.5" />}
+                                {cat === 'idle' && <Coffee className="w-3.5 h-3.5" />}
+                                {cat === 'proximity' && <Bell className="w-3.5 h-3.5" />}
+                                {cat === 'interact' && <Sparkles className="w-3.5 h-3.5" />}
+                              </div>
+                              <div>
+                                <h5 className="font-semibold text-white text-xs leading-tight">{info.title}</h5>
+                                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">{info.subtitle}</p>
+                              </div>
+                            </div>
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded font-medium border shrink-0 ${
+                                isCustom
+                                  ? 'bg-purple-950/60 border-purple-800 text-purple-300'
+                                  : 'bg-emerald-950/60 border-emerald-800 text-emerald-300'
+                              }`}
+                            >
+                              {isCustom ? 'Upload / URL' : 'Bawaan'}
+                            </span>
+                          </div>
+
+                          {/* Sound Card Details */}
+                          <div className="bg-slate-900/80 border border-slate-800 rounded-lg p-2.5 flex items-center justify-between gap-2">
+                            <div className="overflow-hidden">
+                              <span className="text-[10px] text-slate-400 block">Suara Aktif:</span>
+                              <span className="text-xs font-semibold text-amber-300 truncate block">
+                                {soundName}
+                              </span>
+                            </div>
+
+                            {/* Play / Test Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSidebarAudioPreview(cat, currentSound)}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                                isPlaying
+                                  ? 'bg-amber-400 text-slate-950 animate-pulse shadow'
+                                  : 'bg-slate-800 hover:bg-slate-700 text-amber-400'
+                              }`}
+                              title={isPlaying ? 'Hentikan Suara' : 'Dengar Preview Suara'}
+                            >
+                              {isPlaying ? (
+                                <>
+                                  <Square className="w-3 h-3 fill-current" /> Stop
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="w-3 h-3 fill-current" /> Tes
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {/* Volume Slider */}
+                          <div>
+                            <div className="flex justify-between items-center text-[10px] text-slate-400 mb-1">
+                              <span>Volume Suara:</span>
+                              <span className="font-mono text-amber-400 font-bold">{Math.round(soundVolume * 100)}%</span>
+                            </div>
+                            <input
+                              type="range"
+                              min={0}
+                              max={1}
+                              step={0.05}
+                              value={soundVolume}
+                              onChange={(e) => updateAudioVolume(cat, parseFloat(e.target.value))}
+                              className="w-full accent-amber-400 cursor-pointer h-1.5 bg-slate-900 rounded"
+                            />
+                          </div>
+
+                          {/* Action Buttons: Ganti Suara (Pilih/Upload) & Reset */}
+                          <div className="flex items-center gap-2 pt-1 border-t border-slate-700/40">
+                            <button
+                              type="button"
+                              onClick={() => setSoundModalCategory(cat)}
+                              className="flex-1 py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-amber-400 text-xs text-amber-300 font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                            >
+                              <Volume2 className="w-3.5 h-3.5" />
+                              <span>Pilih / Upload Suara</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => resetAudioToDefault(cat)}
+                              className="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-400 hover:text-slate-200 transition cursor-pointer"
+                              title="Reset ke suara default bawaan"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </aside>
         )}
@@ -1823,6 +2119,20 @@ function EditorContent() {
           onSelectSprite={handleSelectSprite}
           title={assetModalTarget.title || 'Pilih Asset dari Library'}
           categoryFilter={assetModalTarget.categoryFilter || 'all'}
+        />
+      )}
+
+      {/* UNIFIED SOUND LIBRARY MODAL PICKER */}
+      {soundModalCategory && (
+        <SoundLibraryModal
+          isOpen={true}
+          onClose={() => setSoundModalCategory(null)}
+          onSelectSound={(sound) => {
+            updateProjectAudio(soundModalCategory, sound);
+            setSoundModalCategory(null);
+          }}
+          initialCategory={soundModalCategory}
+          title={`Pilih Suara: ${getSoundEventInfo(soundModalCategory).title}`}
         />
       )}
     </div>

@@ -1,5 +1,26 @@
 export type SpriteType = 'static' | 'sequence';
 
+export type SoundEventType = 'bgm' | 'jump' | 'footstep' | 'idle' | 'proximity' | 'interact';
+
+export interface SoundAsset {
+  id: string;
+  name: string;
+  category: SoundEventType;
+  url?: string;       // base64 data URI or remote audio URL
+  presetId?: string;  // ID for procedural synth / built-in audio
+  volume?: number;    // 0.0 - 1.0 (default 1.0)
+  loop?: boolean;     // default true for bgm, false for sfx
+}
+
+export interface ProjectAudioConfig {
+  bgm?: SoundAsset;
+  jump?: SoundAsset;
+  footstep?: SoundAsset;
+  idle?: SoundAsset;
+  proximity?: SoundAsset;
+  interact?: SoundAsset;
+}
+
 export interface SpriteAsset {
   id: string;
   name: string;
@@ -11,10 +32,72 @@ export interface SpriteAsset {
 }
 
 export interface PlayerColliderConfig {
-  width?: number; // Lebar hitbox tabrakan
-  height?: number; // Tinggi hitbox tabrakan
-  offsetX?: number; // Offset horizontal (X) dari tepi kiri gambar visual
-  offsetY?: number; // Offset vertikal (Y) dari tepi atas gambar visual
+  // Offset relatif terhadap batas tepi gambar visual (seperti margin/padding)
+  // Nilai positif (+) memperlebar hitbox melebihi batas gambar
+  // Nilai negatif (-) memperkecil hitbox ke dalam gambar
+  // Nilai 0 tepat sejajar dengan tepi gambar
+  left?: number;
+  right?: number;
+  top?: number;
+  bottom?: number;
+
+  // Legacy fields untuk kompatibilitas
+  width?: number;
+  height?: number;
+  offsetX?: number;
+  offsetY?: number;
+}
+
+export function getPlayerHitboxBounds(player: PlayerConfig) {
+  const spriteW = player.width ?? 44;
+  const spriteH = player.height ?? 60;
+  const col = player.collider;
+
+  let offLeft = 0;
+  let offRight = 0;
+  let offTop = 0;
+  let offBottom = 0;
+
+  if (
+    col &&
+    (col.left !== undefined || col.right !== undefined || col.top !== undefined || col.bottom !== undefined)
+  ) {
+    offLeft = col.left ?? 0;
+    offRight = col.right ?? 0;
+    offTop = col.top ?? 0;
+    offBottom = col.bottom ?? 0;
+  } else if (
+    col &&
+    (col.width !== undefined || col.height !== undefined || col.offsetX !== undefined || col.offsetY !== undefined)
+  ) {
+    const legacyW = col.width ?? spriteW;
+    const legacyH = col.height ?? spriteH;
+    const legacyOffX = col.offsetX ?? 0;
+    const legacyOffY = col.offsetY ?? 0;
+
+    offLeft = -legacyOffX;
+    offRight = (legacyOffX + legacyW) - spriteW;
+    offTop = -legacyOffY;
+    offBottom = (legacyOffY + legacyH) - spriteH;
+  }
+
+  const hitboxWidth = Math.max(6, spriteW + offLeft + offRight);
+  const hitboxHeight = Math.max(6, spriteH + offTop + offBottom);
+  const offsetX = -offLeft;
+  const offsetY = -offTop;
+
+  return {
+    spriteW,
+    spriteH,
+    offLeft,
+    offRight,
+    offTop,
+    offBottom,
+    hitboxWidth,
+    hitboxHeight,
+    offsetX,
+    offsetY
+  };
 }
 
 export interface PlayerConfig {
@@ -109,5 +192,6 @@ export interface PlatformerProject {
     parallaxLayers: ParallaxLayer[];
   };
   entities: InteractiveEntity[];
+  audio?: ProjectAudioConfig;
   rsvps?: RSVPRecord[];
 }

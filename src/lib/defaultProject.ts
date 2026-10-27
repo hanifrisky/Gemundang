@@ -11,6 +11,7 @@ import {
   defaultCloudLayer,
   defaultTreeLayer
 } from './assetLibrary';
+import { DEFAULT_PROJECT_AUDIO } from './soundLibrary';
 
 // Seed demo project
 export const DEFAULT_DEMO_PROJECT: PlatformerProject = {
@@ -18,16 +19,17 @@ export const DEFAULT_DEMO_PROJECT: PlatformerProject = {
   title: 'The Wedding Quest of Dimas & Sarah',
   subtitle: 'Undangan Pernikahan Interaktif',
   is_template_enabled: true,
+  audio: DEFAULT_PROJECT_AUDIO,
   player: {
     startX: 100,
     startY: 400,
     width: 44,
     height: 60,
     collider: {
-      width: 32,
-      height: 54,
-      offsetX: 6,
-      offsetY: 6
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0
     },
     canJump: true,
     jumpForce: 13,

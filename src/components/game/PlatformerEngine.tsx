@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { PlatformerProject, InteractiveEntity, SpriteAsset } from '@/types/platformer';
+import { PlatformerProject, InteractiveEntity, SpriteAsset, getPlayerHitboxBounds } from '@/types/platformer';
 import confetti from 'canvas-confetti';
 import {
   Volume2,
@@ -14,6 +14,7 @@ import {
   Crosshair
 } from 'lucide-react';
 import { addRSVPToProject } from '@/lib/projectStorage';
+import { audioEngine } from '@/lib/audioEngine';
 
 interface PlatformerEngineProps {
   project: PlatformerProject;
@@ -74,6 +75,18 @@ export default function PlatformerEngine({
   // Canvas cursor state in preview mode
   const [canvasCursor, setCanvasCursor] = useState<'default' | 'grab' | 'grabbing' | 'move' | 'pointer'>('default');
   const [showHitboxes, setShowHitboxes] = useState(false);
+  const prevNearbyIdRef = useRef<string | null>(null);
+
+  // Sync mute state and handle unmount cleanup
+  useEffect(() => {
+    audioEngine.setMuted(isAudioMuted);
+  }, [isAudioMuted]);
+
+  useEffect(() => {
+    return () => {
+      audioEngine.stopBGM();
+    };
+  }, []);
 
   // Image cache
   const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -213,6 +226,10 @@ export default function PlatformerEngine({
         return;
       }
 
+      if (!isAudioMuted) {
+        audioEngine.startBGM(project.audio?.bgm);
+      }
+
       if (e.code === 'ArrowLeft' || e.code === 'KeyA') keysRef.current.left = true;
       if (e.code === 'ArrowRight' || e.code === 'KeyD') keysRef.current.right = true;
       if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') keysRef.current.jump = true;
@@ -238,7 +255,7 @@ export default function PlatformerEngine({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [mode]);
+  }, [mode, isAudioMuted, project.audio?.bgm]);
 
   // Main Game / Render Loop
   useEffect(() => {
@@ -282,6 +299,7 @@ export default function PlatformerEngine({
           if (playerConf.canJump && keysRef.current.jump && player.isGrounded) {
             player.vy = -playerConf.jumpForce * 38;
             player.isGrounded = false;
+            audioEngine.playJump(playerConf ? project.audio?.jump : undefined);
           }
         } else {
           player.vx = 0;
@@ -289,12 +307,14 @@ export default function PlatformerEngine({
         }
 
         // Player collider parameters & visual size
-        const spriteWidth = playerConf.width ?? 44;
-        const spriteHeight = playerConf.height ?? 60;
-        const colWidth = playerConf.collider?.width ?? spriteWidth;
-        const colHeight = playerConf.collider?.height ?? spriteHeight;
-        const colOffsetX = playerConf.collider?.offsetX ?? 0;
-        const colOffsetY = playerConf.collider?.offsetY ?? 0;
+        const {
+          spriteW: spriteWidth,
+          spriteH: spriteHeight,
+          hitboxWidth: colWidth,
+          hitboxHeight: colHeight,
+          offsetX: colOffsetX,
+          offsetY: colOffsetY
+        } = getPlayerHitboxBounds(playerConf);
 
         player.width = spriteWidth;
         player.height = spriteHeight;
@@ -347,6 +367,15 @@ export default function PlatformerEngine({
           }
         }
 
+        // Player sounds during gameplay (walking footsteps & gentle idle ambient)
+        if (player.isGrounded) {
+          if (player.state === 'run' && Math.abs(player.vx) > 0.1) {
+            audioEngine.playFootstep(project.audio?.footstep);
+          } else if (player.state === 'idle') {
+            audioEngine.playIdle(project.audio?.idle);
+          }
+        }
+
         // Camera following player
         const targetCamX = player.x - canvas.width * 0.4;
         gameStateRef.current.cameraX = Math.max(
@@ -369,9 +398,17 @@ export default function PlatformerEngine({
             break;
           }
         }
+
+        // Proximity chime: bunyikan saat mendekati objek yang dapat diinteraksikan
+        if (closest && closest.id !== prevNearbyIdRef.current) {
+          audioEngine.playProximityChime(project.audio?.proximity);
+        }
+        prevNearbyIdRef.current = closest ? closest.id : null;
         setNearbyEntity(closest);
 
+        // Interaction chime: bunyikan saat diinteraksikan
         if (keysRef.current.interact && closest && !activeEntity) {
+          audioEngine.playInteraction(project.audio?.interact);
           setActiveEntity(closest);
           keysRef.current.interact = false;
         }
@@ -587,10 +624,17 @@ export default function PlatformerEngine({
 
       // Render Collision Box (Hitbox) & Selection Outline in preview/editor mode or debug mode
       if (mode === 'preview' || showHitboxes) {
-        const colWidth = playerConf.collider?.width ?? player.width;
-        const colHeight = playerConf.collider?.height ?? player.height;
-        const colOffsetX = playerConf.collider?.offsetX ?? 0;
-        const colOffsetY = playerConf.collider?.offsetY ?? 0;
+        const {
+          offLeft,
+          offRight,
+          offTop,
+          offBottom,
+          hitboxWidth: colWidth,
+          hitboxHeight: colHeight,
+          offsetX: colOffsetX,
+          offsetY: colOffsetY
+        } = getPlayerHitboxBounds(playerConf);
+
         const cX = player.x + colOffsetX;
         const cY = player.y + colOffsetY;
 
@@ -635,18 +679,18 @@ export default function PlatformerEngine({
 
           // Label floating above
           ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
-          ctx.fillRect(player.x - 10, player.y - 38, 220, 32);
+          ctx.fillRect(player.x - 10, player.y - 40, 240, 34);
           ctx.strokeStyle = '#c084fc';
           ctx.lineWidth = 1;
-          ctx.strokeRect(player.x - 10, player.y - 38, 220, 32);
+          ctx.strokeRect(player.x - 10, player.y - 40, 240, 34);
 
           ctx.fillStyle = '#f3e8ff';
           ctx.font = 'bold 9px sans-serif';
-          ctx.fillText(`Gambar: ${player.width}x${player.height} px`, player.x - 4, player.y - 24);
+          ctx.fillText(`Gambar: ${player.width}x${player.height} px`, player.x - 4, player.y - 26);
 
           ctx.fillStyle = '#4ade80';
           ctx.font = 'bold 9px monospace';
-          ctx.fillText(`Hitbox: ${colWidth}x${colHeight} (Offset: ${colOffsetX}, ${colOffsetY})`, player.x - 4, player.y - 11);
+          ctx.fillText(`Hitbox: ${colWidth}x${colHeight} (L:${offLeft} R:${offRight} T:${offTop} B:${offBottom})`, player.x - 4, player.y - 12);
         }
         ctx.restore();
       }
@@ -688,7 +732,12 @@ export default function PlatformerEngine({
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (mode !== 'preview') return;
+    if (mode !== 'preview') {
+      if (!isAudioMuted) {
+        audioEngine.startBGM(project.audio?.bgm);
+      }
+      return;
+    }
     const { worldX, worldY } = getCanvasWorldCoords(e);
     const { entities, world, player } = project;
     const playerX = player.startX ?? 100;
@@ -724,12 +773,14 @@ export default function PlatformerEngine({
     }
 
     // 2. Check Player (hits visual sprite or collider box)
-    const spriteW = player.width ?? 44;
-    const spriteH = player.height ?? 60;
-    const colW = player.collider?.width ?? spriteW;
-    const colH = player.collider?.height ?? spriteH;
-    const colOffX = player.collider?.offsetX ?? 0;
-    const colOffY = player.collider?.offsetY ?? 0;
+    const {
+      spriteW,
+      spriteH,
+      hitboxWidth: colW,
+      hitboxHeight: colH,
+      offsetX: colOffX,
+      offsetY: colOffY
+    } = getPlayerHitboxBounds(player);
 
     const isPlayerHit = (
       (worldX >= playerX && worldX <= playerX + spriteW && worldY >= playerY && worldY <= playerY + spriteH) ||
@@ -947,20 +998,22 @@ export default function PlatformerEngine({
 
         {/* Action buttons (Mute, Reset, Exit Test, Hitbox Debug) */}
         <div className="pointer-events-auto flex items-center gap-2">
-          {/* Hitbox visual toggle */}
-          <button
-            type="button"
-            onClick={() => setShowHitboxes(prev => !prev)}
-            className={`px-2.5 py-1.5 rounded-full text-xs font-semibold backdrop-blur shadow flex items-center gap-1 transition cursor-pointer border ${
-              showHitboxes
-                ? 'bg-emerald-600 text-white border-emerald-400'
-                : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-700'
-            }`}
-            title="Tampilkan / Sembunyikan Area Tabrakan (Hitbox)"
-          >
-            <Crosshair className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Hitbox:</span> {showHitboxes ? 'ON' : 'OFF'}
-          </button>
+          {/* Hitbox visual toggle (Hanya tampil di Test Mode, TIDAK tampil di Public View / Play Mode) */}
+          {mode === 'test' && (
+            <button
+              type="button"
+              onClick={() => setShowHitboxes(prev => !prev)}
+              className={`px-2.5 py-1.5 rounded-full text-xs font-semibold backdrop-blur shadow flex items-center gap-1 transition cursor-pointer border ${
+                showHitboxes
+                  ? 'bg-emerald-600 text-white border-emerald-400'
+                  : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-700'
+              }`}
+              title="Tampilkan / Sembunyikan Area Tabrakan (Hitbox)"
+            >
+              <Crosshair className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Hitbox:</span> {showHitboxes ? 'ON' : 'OFF'}
+            </button>
+          )}
 
           {mode === 'test' && (
             <button
@@ -976,7 +1029,7 @@ export default function PlatformerEngine({
           {mode === 'test' && onExitTestMode && (
             <button
               onClick={onExitTestMode}
-              className="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow flex items-center gap-1.5 transition"
+              className="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow flex items-center gap-1.5 transition cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
               Keluar Test
@@ -984,9 +1037,16 @@ export default function PlatformerEngine({
           )}
 
           <button
-            onClick={() => setIsAudioMuted(!isAudioMuted)}
-            className="p-2 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700 backdrop-blur shadow transition"
-            title={isAudioMuted ? 'Nyalakan Musik' : 'Matikan Musik'}
+            onClick={() => {
+              const newMuted = !isAudioMuted;
+              setIsAudioMuted(newMuted);
+              audioEngine.setMuted(newMuted);
+              if (!newMuted) {
+                audioEngine.startBGM(project.audio?.bgm);
+              }
+            }}
+            className="p-2 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700 backdrop-blur shadow transition cursor-pointer"
+            title={isAudioMuted ? 'Nyalakan Musik & Suara' : 'Matikan Musik & Suara'}
           >
             {isAudioMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
@@ -1030,7 +1090,10 @@ export default function PlatformerEngine({
           <div className="pointer-events-auto flex gap-3">
             {nearbyEntity && (
               <button
-                onClick={() => setActiveEntity(nearbyEntity)}
+                onClick={() => {
+                  audioEngine.playInteraction(project.audio?.interact);
+                  setActiveEntity(nearbyEntity);
+                }}
                 className="w-14 h-14 rounded-2xl bg-amber-500 active:bg-amber-400 text-slate-950 font-bold flex flex-col items-center justify-center border-2 border-white shadow-xl animate-pulse select-none text-xs"
               >
                 <MessageCircle className="w-5 h-5 mb-0.5" />
@@ -1040,9 +1103,15 @@ export default function PlatformerEngine({
 
             {project.player.canJump && (
               <button
-                onTouchStart={() => (keysRef.current.jump = true)}
+                onTouchStart={() => {
+                  keysRef.current.jump = true;
+                  if (!isAudioMuted) audioEngine.startBGM(project.audio?.bgm);
+                }}
                 onTouchEnd={() => (keysRef.current.jump = false)}
-                onMouseDown={() => (keysRef.current.jump = true)}
+                onMouseDown={() => {
+                  keysRef.current.jump = true;
+                  if (!isAudioMuted) audioEngine.startBGM(project.audio?.bgm);
+                }}
                 onMouseUp={() => (keysRef.current.jump = false)}
                 className="w-14 h-14 rounded-2xl bg-emerald-600 active:bg-emerald-400 text-white active:text-slate-950 text-sm font-bold flex items-center justify-center border-2 border-emerald-400 backdrop-blur shadow-xl select-none"
               >
