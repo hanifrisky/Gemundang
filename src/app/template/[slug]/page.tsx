@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import {
   PlatformerProject,
   InteractiveEntity,
@@ -31,7 +31,6 @@ import { presetGroom, presetBride } from '@/lib/assetLibrary';
 
 function TemplateCustomizerContent() {
   const params = useParams();
-  const router = useRouter();
   const slug = (params?.slug as string) || 'wedding-adventure';
 
   const [project, setProject] = useState<PlatformerProject | null>(null);
@@ -311,7 +310,7 @@ function TemplateCustomizerContent() {
               Bagian Undangan yang Dapat Diubah ({editableEntities.length} Objek)
             </h3>
 
-            {editableEntities.map((ent, idx) => (
+            {editableEntities.map((ent) => (
               <div
                 key={ent.id}
                 className="p-4 rounded-2xl bg-slate-800/40 border border-slate-800 space-y-4"
@@ -457,6 +456,8 @@ function TemplateCustomizerContent() {
       <AssetLibraryModal
         isOpen={assetTarget !== null}
         onClose={() => setAssetTarget(null)}
+        categoryFilter="character"
+        title={assetTarget?.type === 'player' ? 'Pilih Karakter Pemain' : 'Pilih Sprite Karakter / Tampilan Objek'}
         onSelectSprite={sprite => {
           if (!assetTarget) return;
           if (assetTarget.type === 'player') {

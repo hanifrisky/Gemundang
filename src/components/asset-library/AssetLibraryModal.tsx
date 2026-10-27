@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SpriteAsset, SpriteType } from '@/types/platformer';
 import { BUILT_IN_SPRITES } from '@/lib/assetLibrary';
 import {
@@ -8,6 +8,7 @@ import {
   Upload,
   Plus,
   Play,
+  Film,
   Sparkles,
   Check,
   Image as ImageIcon,
@@ -23,7 +24,56 @@ interface AssetLibraryModalProps {
   onClose: () => void;
   onSelectSprite: (sprite: SpriteAsset) => void;
   title?: string;
-  categoryFilter?: 'player' | 'npc' | 'obstacle' | 'decoration' | 'platform' | 'background' | 'all';
+  categoryFilter?: 'character' | 'player' | 'npc' | 'obstacle' | 'decoration' | 'platform' | 'background' | 'all';
+}
+
+function normalizeCategory(cat?: string): string {
+  if (!cat || cat === 'all') return 'all';
+  if (cat === 'character' || cat === 'player' || cat === 'npc') return 'character';
+  if (cat === 'object' || cat === 'obstacle' || cat === 'decoration') return 'object';
+  if (cat === 'platform') return 'platform';
+  if (cat === 'background') return 'background';
+  return 'all';
+}
+
+function formatCategoryBadge(category?: string) {
+  if (category === 'character' || category === 'player' || category === 'npc') {
+    return 'Karakter';
+  }
+  if (category === 'obstacle' || category === 'decoration') {
+    return 'Objek';
+  }
+  if (category === 'platform') return 'Platform';
+  if (category === 'background') return 'Background';
+  return 'Aset';
+}
+
+// Mini animated component for sequence previews
+function AnimatedSpriteThumbnail({ sprite }: { sprite: SpriteAsset }) {
+  const [frameIndex, setFrameIndex] = useState(0);
+
+  useEffect(() => {
+    if (sprite.type !== 'sequence' || !sprite.frames || sprite.frames.length <= 1) {
+      return;
+    }
+    const fps = sprite.frameRate || 4;
+    const intervalMs = Math.max(100, Math.floor(1000 / fps));
+    const timer = setInterval(() => {
+      setFrameIndex(prev => (prev + 1) % sprite.frames.length);
+    }, intervalMs);
+
+    return () => clearInterval(timer);
+  }, [sprite]);
+
+  const currentFrame = sprite.frames?.[frameIndex] || sprite.frames?.[0] || '';
+
+  return (
+    <img
+      src={currentFrame}
+      alt={sprite.name}
+      className="max-h-full max-w-full object-contain group-hover:scale-105 transition duration-200"
+    />
+  );
 }
 
 export default function AssetLibraryModal({
@@ -34,27 +84,63 @@ export default function AssetLibraryModal({
   categoryFilter = 'all'
 }: AssetLibraryModalProps) {
   const [activeTab, setActiveTab] = useState<'presets' | 'upload' | 'url'>('presets');
-  const [selectedCategory, setSelectedCategory] = useState<string>(categoryFilter);
+  
+  // Track category filter changes from props without cascading renders in useEffect
+  const [categoryOverride, setCategoryOverride] = useState<string | null>(null);
+  const [prevCategoryFilter, setPrevCategoryFilter] = useState(categoryFilter);
+
+  if (categoryFilter !== prevCategoryFilter) {
+    setPrevCategoryFilter(categoryFilter);
+    setCategoryOverride(null);
+  }
+  const selectedCategory = categoryOverride ?? normalizeCategory(categoryFilter);
+  const setSelectedCategory = (cat: string) => setCategoryOverride(cat);
 
   // Custom upload state
   const [customName, setCustomName] = useState('');
   const [customType, setCustomType] = useState<SpriteType>('static');
   const [customFrames, setCustomFrames] = useState<string[]>([]);
   const [customFps, setCustomFps] = useState(8);
+  const [previewUploadFrame, setPreviewUploadFrame] = useState(0);
 
   // Direct URL state
   const [directUrl, setDirectUrl] = useState('');
   const [directUrlName, setDirectUrlName] = useState('');
 
+  // Animate custom uploaded sequence
+  useEffect(() => {
+    if (customType !== 'sequence' || customFrames.length <= 1) {
+      return;
+    }
+    const intervalMs = Math.max(80, Math.floor(1000 / customFps));
+    const timer = setInterval(() => {
+      setPreviewUploadFrame(prev => (prev + 1) % customFrames.length);
+    }, intervalMs);
+    return () => clearInterval(timer);
+  }, [customType, customFrames.length, customFps]);
+
+  const activeUploadFrame = customType === 'sequence' && customFrames.length > 0
+    ? previewUploadFrame % customFrames.length
+    : 0;
+
   if (!isOpen) return null;
 
-  // Filter presets
+  // Filter presets (NPC is grouped under Character!)
   const filteredPresets = BUILT_IN_SPRITES.filter(s => {
     if (selectedCategory === 'all') return true;
-    if (selectedCategory === 'npc') {
-      return s.category === 'npc' || s.category === 'obstacle' || s.category === 'decoration';
+    if (selectedCategory === 'character') {
+      return s.category === 'character' || s.category === 'player' || s.category === 'npc';
     }
-    return s.category === selectedCategory;
+    if (selectedCategory === 'object') {
+      return s.category === 'obstacle' || s.category === 'decoration';
+    }
+    if (selectedCategory === 'platform') {
+      return s.category === 'platform';
+    }
+    if (selectedCategory === 'background') {
+      return s.category === 'background';
+    }
+    return true;
   });
 
   // Handle file uploads (converts file to base64 DataURL)
@@ -82,6 +168,13 @@ export default function AssetLibraryModal({
 
   const handleSaveCustomSprite = () => {
     if (customFrames.length === 0) return;
+    const defaultCat = (
+      selectedCategory === 'object'
+        ? 'decoration'
+        : selectedCategory !== 'all'
+        ? selectedCategory
+        : 'character'
+    ) as SpriteAsset['category'];
     const newSprite: SpriteAsset = {
       id: `custom-sprite-${Date.now()}`,
       name: customName.trim() || 'Custom Asset',
@@ -89,7 +182,7 @@ export default function AssetLibraryModal({
       frames: customFrames,
       frameRate: customFps,
       loop: true,
-      category: (categoryFilter !== 'all' ? categoryFilter : 'decoration') as SpriteAsset['category']
+      category: defaultCat
     };
     onSelectSprite(newSprite);
     onClose();
@@ -98,16 +191,25 @@ export default function AssetLibraryModal({
   const handleUseDirectUrl = () => {
     const trimmed = directUrl.trim();
     if (!trimmed) return;
+    const defaultCat = (selectedCategory !== 'all' ? selectedCategory : 'background') as SpriteAsset['category'];
     const newSprite: SpriteAsset = {
       id: `url-asset-${Date.now()}`,
       name: directUrlName.trim() || 'Custom URL Image',
       type: 'static',
       frames: [trimmed],
-      category: (categoryFilter !== 'all' ? categoryFilter : 'background') as SpriteAsset['category']
+      category: defaultCat
     };
     onSelectSprite(newSprite);
     onClose();
   };
+
+  const categoryTabs = [
+    { id: 'all', label: 'Semua', icon: Layers },
+    { id: 'character', label: 'Karakter (Player & NPC)', icon: User },
+    { id: 'object', label: 'Objek & Properti', icon: Sparkles },
+    { id: 'platform', label: 'Pijakan (Platform)', icon: Sliders },
+    { id: 'background', label: 'Background (Parallax)', icon: TreePine },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
@@ -173,13 +275,7 @@ export default function AssetLibraryModal({
               {/* Category Filter Chips */}
               <div className="flex flex-wrap items-center gap-1.5 text-xs">
                 <span className="text-slate-400 text-[11px] mr-1">Filter Kategori:</span>
-                {[
-                  { id: 'all', label: 'Semua', icon: Layers },
-                  { id: 'platform', label: 'Pijakan (Platform)', icon: Sliders },
-                  { id: 'background', label: 'Background (Parallax)', icon: TreePine },
-                  { id: 'npc', label: 'NPC & Objek', icon: Sparkles },
-                  { id: 'player', label: 'Karakter', icon: User }
-                ].map(cat => {
+                {categoryTabs.map(cat => {
                   const Icon = cat.icon;
                   const isActive = selectedCategory === cat.id;
                   return (
@@ -202,39 +298,67 @@ export default function AssetLibraryModal({
 
               {/* Grid of Presets */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
-                {filteredPresets.map(sprite => (
-                  <div
-                    key={sprite.id}
-                    onClick={() => {
-                      onSelectSprite(sprite);
-                      onClose();
-                    }}
-                    className="group relative cursor-pointer p-3.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-amber-400 transition flex flex-col items-center text-center space-y-2.5 shadow-md"
-                  >
-                    {/* Preview Container */}
-                    <div className="w-full h-24 bg-slate-950/80 rounded-lg flex items-center justify-center p-2 border border-slate-800 overflow-hidden">
-                      <img
-                        src={sprite.frames[0]}
-                        alt={sprite.name}
-                        className="max-h-full max-w-full object-contain group-hover:scale-105 transition duration-200"
-                      />
-                    </div>
+                {filteredPresets.map(sprite => {
+                  const isSeq = sprite.type === 'sequence';
+                  return (
+                    <div
+                      key={sprite.id}
+                      onClick={() => {
+                        onSelectSprite(sprite);
+                        onClose();
+                      }}
+                      className="group relative cursor-pointer p-3.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-amber-400 transition flex flex-col items-center text-center space-y-2.5 shadow-md"
+                    >
+                      {/* Preview Container with Live Animation */}
+                      <div className="relative w-full h-24 bg-slate-950/80 rounded-lg flex items-center justify-center p-2 border border-slate-800 overflow-hidden">
+                        <AnimatedSpriteThumbnail sprite={sprite} />
 
-                    <div className="w-full">
-                      <h4 className="text-xs font-bold text-slate-200 group-hover:text-amber-300 truncate">
-                        {sprite.name}
-                      </h4>
-                      <span className="text-[10px] px-2 py-0.5 mt-1 inline-block rounded-full bg-slate-900 border border-slate-700 text-slate-400 font-mono">
-                        {sprite.category || 'asset'}
-                      </span>
-                    </div>
+                        {/* Top-Right Badge: SEQUENCE vs STATIC */}
+                        {isSeq ? (
+                          <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-indigo-600/90 text-indigo-100 shadow flex items-center gap-1 backdrop-blur-xs tracking-wider">
+                            <Film className="w-2.5 h-2.5" />
+                            SEQUENCE
+                          </span>
+                        ) : (
+                          <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-slate-700/90 text-slate-200 shadow flex items-center gap-1 backdrop-blur-xs tracking-wider">
+                            <ImageIcon className="w-2.5 h-2.5" />
+                            STATIC
+                          </span>
+                        )}
+                      </div>
 
-                    <button className="w-full py-1 text-xs font-semibold rounded-lg bg-slate-700 group-hover:bg-amber-500 group-hover:text-slate-950 text-slate-300 transition flex items-center justify-center gap-1 cursor-pointer">
-                      <Check className="w-3.5 h-3.5" />
-                      Pilih
-                    </button>
-                  </div>
-                ))}
+                      <div className="w-full space-y-1">
+                        <h4 className="text-xs font-bold text-slate-200 group-hover:text-amber-300 truncate" title={sprite.name}>
+                          {sprite.name}
+                        </h4>
+
+                        {/* Badges: Marker Type & Category */}
+                        <div className="flex flex-wrap items-center justify-center gap-1">
+                          {isSeq ? (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-semibold flex items-center gap-1">
+                              <Play className="w-2 h-2 fill-current" />
+                              {sprite.frames.length} Frame ({sprite.frameRate || 4} FPS)
+                            </span>
+                          ) : (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold flex items-center gap-1">
+                              <ImageIcon className="w-2 h-2" />
+                              Static
+                            </span>
+                          )}
+
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-900 border border-slate-700 text-slate-400 font-medium">
+                            {formatCategoryBadge(sprite.category)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button className="w-full py-1 text-xs font-semibold rounded-lg bg-slate-700 group-hover:bg-amber-500 group-hover:text-slate-950 text-slate-300 transition flex items-center justify-center gap-1 cursor-pointer">
+                        <Check className="w-3.5 h-3.5" />
+                        Pilih
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -250,14 +374,14 @@ export default function AssetLibraryModal({
                   type="text"
                   value={customName}
                   onChange={e => setCustomName(e.target.value)}
-                  placeholder="Contoh: Tekstur Kayu / Langit Malam / Karakter Saya"
+                  placeholder="Contoh: Tokoh Penghulu / Tekstur Kayu / Latar Resepsi"
                   className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Format Animasi / Gambar
+                  Format Animasi / Gambar (Pilih Tipe Aset)
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -268,24 +392,24 @@ export default function AssetLibraryModal({
                     }}
                     className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
                       customType === 'static'
-                        ? 'border-amber-400 bg-amber-500/10 text-amber-300'
-                        : 'border-slate-700 bg-slate-800 text-slate-400'
+                        ? 'border-emerald-400 bg-emerald-500/15 text-emerald-300 shadow-sm'
+                        : 'border-slate-700 bg-slate-800 text-slate-400 hover:text-white'
                     }`}
                   >
                     <ImageIcon className="w-4 h-4" />
-                    Single Image (Static)
+                    <span>Single Image (Static)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setCustomType('sequence')}
                     className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
                       customType === 'sequence'
-                        ? 'border-amber-400 bg-amber-500/10 text-amber-300'
-                        : 'border-slate-700 bg-slate-800 text-slate-400'
+                        ? 'border-indigo-400 bg-indigo-500/15 text-indigo-300 shadow-sm'
+                        : 'border-slate-700 bg-slate-800 text-slate-400 hover:text-white'
                     }`}
                   >
-                    <Play className="w-4 h-4" />
-                    Image Sequence (Animasi)
+                    <Film className="w-4 h-4" />
+                    <span>Image Sequence (Animasi)</span>
                   </button>
                 </div>
               </div>
@@ -294,7 +418,7 @@ export default function AssetLibraryModal({
                 <div>
                   <div className="flex justify-between items-center mb-1">
                     <label className="text-xs font-semibold text-slate-300">
-                      Kecepatan Animasi (FPS): {customFps} frame/detik
+                      Kecepatan Animasi: {customFps} FPS (Frame/Detik)
                     </label>
                   </div>
                   <input
@@ -322,7 +446,7 @@ export default function AssetLibraryModal({
                   </span>
                   <span className="text-[10px] text-slate-500 mt-1">
                     {customType === 'sequence'
-                      ? 'Dapat memilih banyak file sekaligus'
+                      ? 'Dapat memilih banyak file sekaligus untuk dianimasikan berurutan'
                       : 'Mendukung PNG transparan, WebP, JPG, SVG'}
                   </span>
                   <input
@@ -335,31 +459,63 @@ export default function AssetLibraryModal({
                 </label>
               </div>
 
-              {/* Uploaded Frames Preview */}
+              {/* Uploaded Frames & Preview */}
               {customFrames.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>Frame Terpilih ({customFrames.length} gambar)</span>
+                <div className="space-y-3 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-200">
+                        Pratinjau ({customFrames.length} gambar)
+                      </span>
+                      {customType === 'sequence' ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-1">
+                          <Film className="w-2.5 h-2.5" />
+                          SEQUENCE ({customFps} FPS)
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                          <ImageIcon className="w-2.5 h-2.5" />
+                          STATIC
+                        </span>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={() => setCustomFrames([])}
-                      className="text-rose-400 hover:underline cursor-pointer"
+                      className="text-rose-400 hover:underline cursor-pointer text-xs"
                     >
                       Hapus Semua
                     </button>
                   </div>
-                  <div className="flex gap-2 overflow-x-auto pb-2">
+
+                  {/* Animated sequence player */}
+                  {customType === 'sequence' && (
+                    <div className="w-full h-28 bg-slate-950 rounded-lg flex items-center justify-center p-2 border border-slate-800">
+                      <img
+                        src={customFrames[activeUploadFrame] || customFrames[0]}
+                        alt="Sequence Preview"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+                  )}
+
+                  {/* Frame Thumbnails */}
+                  <div className="flex gap-2 overflow-x-auto pb-1">
                     {customFrames.map((frame, i) => (
                       <div
                         key={i}
-                        className="relative w-16 h-16 shrink-0 rounded-lg bg-slate-950 border border-slate-700 p-1 flex items-center justify-center"
+                        className={`relative w-14 h-14 shrink-0 rounded-lg bg-slate-950 border p-1 flex items-center justify-center ${
+                          customType === 'sequence' && activeUploadFrame === i
+                            ? 'border-indigo-400'
+                            : 'border-slate-800'
+                        }`}
                       >
                         <img
                           src={frame}
                           alt={`Frame ${i + 1}`}
                           className="max-h-full max-w-full object-contain"
                         />
-                        <span className="absolute bottom-0.5 right-1 text-[9px] bg-slate-800/90 text-amber-300 px-1 rounded font-mono">
+                        <span className="absolute bottom-0.5 right-1 text-[8px] bg-slate-800/90 text-amber-300 px-1 rounded font-mono">
                           #{i + 1}
                         </span>
                       </div>
@@ -375,7 +531,7 @@ export default function AssetLibraryModal({
                 className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold transition shadow-lg text-sm flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                Gunakan Gambar Ini
+                Gunakan Aset Ini
               </button>
             </div>
           )}
@@ -412,7 +568,13 @@ export default function AssetLibraryModal({
               {/* Live Preview Box */}
               {directUrl.trim() && (
                 <div className="space-y-1.5">
-                  <span className="text-xs text-slate-400">Pratinjau Gambar:</span>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Pratinjau Gambar:</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                      <ImageIcon className="w-2.5 h-2.5" />
+                      STATIC
+                    </span>
+                  </div>
                   <div className="w-full h-40 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden p-2">
                     <img
                       src={directUrl}

@@ -60,7 +60,7 @@ function EditorContent() {
     entityId?: string;
     layerId?: string;
     platformId?: string;
-    categoryFilter?: 'player' | 'npc' | 'obstacle' | 'decoration' | 'platform' | 'background' | 'all';
+    categoryFilter?: 'character' | 'player' | 'npc' | 'obstacle' | 'decoration' | 'platform' | 'background' | 'all';
     title?: string;
   } | null>(null);
 
@@ -739,8 +739,8 @@ function EditorContent() {
                             onClick={() => setAssetModalTarget({
                               target: 'entity',
                               entityId: selectedEntity.id,
-                              categoryFilter: 'npc',
-                              title: 'Pilih Sprite Objek / NPC'
+                              categoryFilter: 'character',
+                              title: 'Pilih Sprite Karakter / NPC / Objek'
                             })}
                             className="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-amber-400 flex items-center justify-between text-xs text-slate-200 transition cursor-pointer"
                           >
@@ -752,7 +752,16 @@ function EditorContent() {
                                   className="max-h-full max-w-full"
                                 />
                               </div>
-                              <span>{selectedEntity.sprite?.name || 'Pilih Sprite'}</span>
+                              <span className="truncate">{selectedEntity.sprite?.name || 'Pilih Sprite'}</span>
+                              {selectedEntity.sprite?.type === 'sequence' ? (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shrink-0">
+                                  Sequence
+                                </span>
+                              ) : (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                                  Static
+                                </span>
+                              )}
                             </div>
                             <span className="text-[10px] text-amber-400 font-semibold">Ganti ➔</span>
                           </button>
@@ -1346,7 +1355,7 @@ function EditorContent() {
                         type="button"
                         onClick={() => setAssetModalTarget({
                           target: 'player_idle',
-                          categoryFilter: 'player',
+                          categoryFilter: 'character',
                           title: 'Pilih Sprite Karakter (Idle)'
                         })}
                         className="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-amber-400 flex items-center justify-between text-xs text-slate-200 transition cursor-pointer"
@@ -1359,7 +1368,16 @@ function EditorContent() {
                               className="max-h-full max-w-full"
                             />
                           </div>
-                          <span>{project.player.idleSprite?.name || 'Pilih Idle Sprite'}</span>
+                          <span className="truncate">{project.player.idleSprite?.name || 'Pilih Idle Sprite'}</span>
+                          {project.player.idleSprite?.type === 'sequence' ? (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shrink-0">
+                              Sequence
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                              Static
+                            </span>
+                          )}
                         </div>
                         <span className="text-[10px] text-amber-400 font-semibold">Ganti ➔</span>
                       </button>
@@ -1371,7 +1389,7 @@ function EditorContent() {
                         type="button"
                         onClick={() => setAssetModalTarget({
                           target: 'player_run',
-                          categoryFilter: 'player',
+                          categoryFilter: 'character',
                           title: 'Pilih Sprite Karakter (Run)'
                         })}
                         className="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-amber-400 flex items-center justify-between text-xs text-slate-200 transition cursor-pointer"
@@ -1384,7 +1402,16 @@ function EditorContent() {
                               className="max-h-full max-w-full"
                             />
                           </div>
-                          <span>{project.player.runSprite?.name || 'Pilih Run Sprite'}</span>
+                          <span className="truncate">{project.player.runSprite?.name || 'Pilih Run Sprite'}</span>
+                          {project.player.runSprite?.type === 'sequence' ? (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shrink-0">
+                              Sequence
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                              Static
+                            </span>
+                          )}
                         </div>
                         <span className="text-[10px] text-amber-400 font-semibold">Ganti ➔</span>
                       </button>

@@ -194,7 +194,7 @@ export const priestSprite: SpriteAsset = {
   ],
   frameRate: 3,
   loop: true,
-  category: 'npc'
+  category: 'character'
 };
 
 // 4. NPC 2: Sahabat / Best Friend / Host
@@ -235,7 +235,7 @@ export const friendSprite: SpriteAsset = {
   ],
   frameRate: 3,
   loop: true,
-  category: 'npc'
+  category: 'character'
 };
 
 // 5. Interactive Object: Treasure Chest (Animasi Buka Peti)
@@ -400,7 +400,7 @@ export const presetGroom: { idle: SpriteAsset; run: SpriteAsset } = {
     frames: [groomIdleFrame1, groomIdleFrame2],
     frameRate: 2,
     loop: true,
-    category: 'player'
+    category: 'character'
   },
   run: {
     id: 'player-groom-run',
@@ -409,7 +409,7 @@ export const presetGroom: { idle: SpriteAsset; run: SpriteAsset } = {
     frames: [groomRunFrame1, groomRunFrame2],
     frameRate: 6,
     loop: true,
-    category: 'player'
+    category: 'character'
   }
 };
 
@@ -422,7 +422,7 @@ export const presetBride: { idle: SpriteAsset; run: SpriteAsset } = {
     frames: [brideIdleFrame1, brideIdleFrame2],
     frameRate: 2,
     loop: true,
-    category: 'player'
+    category: 'character'
   },
   run: {
     id: 'player-bride-run',
@@ -431,7 +431,7 @@ export const presetBride: { idle: SpriteAsset; run: SpriteAsset } = {
     frames: [brideRunFrame1, brideRunFrame2],
     frameRate: 6,
     loop: true,
-    category: 'player'
+    category: 'character'
   }
 };
 
