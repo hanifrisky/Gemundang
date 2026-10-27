@@ -21,6 +21,14 @@ export const DEFAULT_DEMO_PROJECT: PlatformerProject = {
   player: {
     startX: 100,
     startY: 400,
+    width: 44,
+    height: 60,
+    collider: {
+      width: 32,
+      height: 54,
+      offsetX: 6,
+      offsetY: 6
+    },
     canJump: true,
     jumpForce: 13,
     speed: 4,

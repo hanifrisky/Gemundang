@@ -10,7 +10,8 @@ import {
   X,
   Send,
   ExternalLink,
-  MessageCircle
+  MessageCircle,
+  Crosshair
 } from 'lucide-react';
 import { addRSVPToProject } from '@/lib/projectStorage';
 
@@ -72,6 +73,7 @@ export default function PlatformerEngine({
 
   // Canvas cursor state in preview mode
   const [canvasCursor, setCanvasCursor] = useState<'default' | 'grab' | 'grabbing' | 'move' | 'pointer'>('default');
+  const [showHitboxes, setShowHitboxes] = useState(false);
 
   // Image cache
   const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
@@ -93,9 +95,11 @@ export default function PlatformerEngine({
     }
   }, [editorCameraX]);
 
-  // Initial player coordinates from config or sensible defaults
+  // Initial player coordinates & dimensions from config or sensible defaults
   const initialPlayerX = project.player.startX ?? 100;
   const initialPlayerY = project.player.startY ?? (project.world.groundY ? project.world.groundY - 64 : 396);
+  const initialSpriteWidth = project.player.width ?? 44;
+  const initialSpriteHeight = project.player.height ?? 60;
 
   // Game state references
   const gameStateRef = useRef({
@@ -104,8 +108,8 @@ export default function PlatformerEngine({
       y: initialPlayerY,
       vx: 0,
       vy: 0,
-      width: 44,
-      height: 60,
+      width: initialSpriteWidth,
+      height: initialSpriteHeight,
       isGrounded: false,
       facing: 'right' as 'left' | 'right',
       state: 'idle' as 'idle' | 'run',
@@ -116,15 +120,17 @@ export default function PlatformerEngine({
     lastTime: 0
   });
 
-  // When project start position changes in preview mode, update player state
+  // When project start position or size changes in preview mode, update player state
   useEffect(() => {
     if (mode === 'preview') {
       gameStateRef.current.player.x = project.player.startX ?? 100;
       gameStateRef.current.player.y = project.player.startY ?? (project.world.groundY ? project.world.groundY - 64 : 396);
+      gameStateRef.current.player.width = project.player.width ?? 44;
+      gameStateRef.current.player.height = project.player.height ?? 60;
       gameStateRef.current.player.vx = 0;
       gameStateRef.current.player.vy = 0;
     }
-  }, [project.player.startX, project.player.startY, project.world.groundY, mode]);
+  }, [project.player.startX, project.player.startY, project.player.width, project.player.height, project.world.groundY, mode]);
 
   // Dragging state for preview mode
   const dragRef = useRef<{
@@ -282,41 +288,59 @@ export default function PlatformerEngine({
           player.state = 'idle';
         }
 
+        // Player collider parameters & visual size
+        const spriteWidth = playerConf.width ?? 44;
+        const spriteHeight = playerConf.height ?? 60;
+        const colWidth = playerConf.collider?.width ?? spriteWidth;
+        const colHeight = playerConf.collider?.height ?? spriteHeight;
+        const colOffsetX = playerConf.collider?.offsetX ?? 0;
+        const colOffsetY = playerConf.collider?.offsetY ?? 0;
+
+        player.width = spriteWidth;
+        player.height = spriteHeight;
+
         // Gravity & Vertical movement
         player.vy += gravity * 40 * dt;
         player.x += player.vx * dt;
         player.y += player.vy * dt;
 
-        // Bound player within world
-        if (player.x < 10) player.x = 10;
-        if (player.x > world.worldWidth - player.width - 20) {
-          player.x = world.worldWidth - player.width - 20;
+        // Bound player within world (using collider boundaries)
+        if (player.x + colOffsetX < 10) {
+          player.x = 10 - colOffsetX;
+        }
+        if (player.x + colOffsetX + colWidth > world.worldWidth - 20) {
+          player.x = world.worldWidth - 20 - colWidth - colOffsetX;
         }
 
         // Collision detection
         player.isGrounded = false;
 
-        // Ground Collision
+        // Ground Collision (snaps collider bottom to ground line)
         if (world.groundMode === 'endless') {
-          if (player.y + player.height >= groundY) {
-            player.y = groundY - player.height;
+          const colBottom = player.y + colOffsetY + colHeight;
+          if (colBottom >= groundY) {
+            player.y = groundY - colHeight - colOffsetY;
             player.vy = 0;
             player.isGrounded = true;
           }
         }
 
-        // Platforms Collision
+        // Platforms Collision (using collider bounds & offset)
         if (world.platforms && world.platforms.length > 0) {
+          const colLeft = player.x + colOffsetX;
+          const colRight = colLeft + colWidth;
+          const colBottom = player.y + colOffsetY + colHeight;
+          const prevColBottom = (player.y - player.vy * dt) + colOffsetY + colHeight;
+
           for (const plat of world.platforms) {
-            const prevY = player.y - player.vy * dt;
             if (
-              player.x + player.width > plat.x &&
-              player.x < plat.x + plat.width &&
-              prevY + player.height <= plat.y + 10 &&
-              player.y + player.height >= plat.y &&
+              colRight > plat.x &&
+              colLeft < plat.x + plat.width &&
+              prevColBottom <= plat.y + 12 &&
+              colBottom >= plat.y &&
               player.vy >= 0
             ) {
-              player.y = plat.y - player.height;
+              player.y = plat.y - colHeight - colOffsetY;
               player.vy = 0;
               player.isGrounded = true;
             }
@@ -330,13 +354,15 @@ export default function PlatformerEngine({
           Math.min(targetCamX, world.worldWidth - canvas.width)
         );
 
-        // Proximity detection
+        // Proximity detection (centered on player collider)
         let closest: InteractiveEntity | null = null;
         for (const ent of entities) {
           if (!ent.hasInteraction) continue;
+          const pCenterX = player.x + colOffsetX + colWidth / 2;
+          const pCenterY = player.y + colOffsetY + colHeight / 2;
           const dist = Math.hypot(
-            (player.x + player.width / 2) - (ent.x + ent.width / 2),
-            (player.y + player.height / 2) - (ent.y + ent.height / 2)
+            pCenterX - (ent.x + ent.width / 2),
+            pCenterY - (ent.y + ent.height / 2)
           );
           if (dist < 85) {
             closest = ent;
@@ -559,34 +585,69 @@ export default function PlatformerEngine({
         player.facing === 'left'
       );
 
-      // Selection outline for Player in preview mode
-      if (mode === 'preview' && isPlayerSelected) {
+      // Render Collision Box (Hitbox) & Selection Outline in preview/editor mode or debug mode
+      if (mode === 'preview' || showHitboxes) {
+        const colWidth = playerConf.collider?.width ?? player.width;
+        const colHeight = playerConf.collider?.height ?? player.height;
+        const colOffsetX = playerConf.collider?.offsetX ?? 0;
+        const colOffsetY = playerConf.collider?.offsetY ?? 0;
+        const cX = player.x + colOffsetX;
+        const cY = player.y + colOffsetY;
+
         ctx.save();
-        ctx.strokeStyle = '#c084fc';
-        ctx.lineWidth = 2.5;
-        ctx.strokeRect(player.x - 3, player.y - 3, player.width + 6, player.height + 6);
+        // Green semi-transparent collider box
+        ctx.fillStyle = 'rgba(34, 197, 94, 0.22)';
+        ctx.fillRect(cX, cY, colWidth, colHeight);
+        ctx.strokeStyle = '#22c55e';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 2]);
+        ctx.strokeRect(cX, cY, colWidth, colHeight);
+        ctx.setLineDash([]);
 
-        // Corner handles
-        ctx.fillStyle = '#c084fc';
-        const corners = [
-          [player.x - 5, player.y - 5],
-          [player.x + player.width - 1, player.y - 5],
-          [player.x - 5, player.y + player.height - 1],
-          [player.x + player.width - 1, player.y + player.height - 1]
-        ];
-        corners.forEach(([cx, cy]) => {
-          ctx.fillRect(cx, cy, 6, 6);
-        });
-
-        // Label
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-        ctx.fillRect(player.x - 10, player.y - 24, 160, 20);
-        ctx.strokeStyle = '#c084fc';
+        // Small center mark of collider
+        ctx.strokeStyle = 'rgba(74, 222, 128, 0.8)';
         ctx.lineWidth = 1;
-        ctx.strokeRect(player.x - 10, player.y - 24, 160, 20);
-        ctx.fillStyle = '#c084fc';
-        ctx.font = 'bold 10px monospace';
-        ctx.fillText(`Karakter Start (${player.x}, ${player.y})`, player.x - 4, player.y - 10);
+        ctx.beginPath();
+        ctx.moveTo(cX + colWidth / 2 - 4, cY + colHeight / 2);
+        ctx.lineTo(cX + colWidth / 2 + 4, cY + colHeight / 2);
+        ctx.moveTo(cX + colWidth / 2, cY + colHeight / 2 - 4);
+        ctx.lineTo(cX + colWidth / 2, cY + colHeight / 2 + 4);
+        ctx.stroke();
+
+        // When selected in preview mode
+        if (mode === 'preview' && isPlayerSelected) {
+          // Sprite visual bounding outline (purple dashed)
+          ctx.strokeStyle = '#c084fc';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(player.x - 2, player.y - 2, player.width + 4, player.height + 4);
+
+          // Corner handles
+          ctx.fillStyle = '#c084fc';
+          const corners = [
+            [player.x - 4, player.y - 4],
+            [player.x + player.width - 2, player.y - 4],
+            [player.x - 4, player.y + player.height - 2],
+            [player.x + player.width - 2, player.y + player.height - 2]
+          ];
+          corners.forEach(([cornerX, cornerY]) => {
+            ctx.fillRect(cornerX, cornerY, 6, 6);
+          });
+
+          // Label floating above
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+          ctx.fillRect(player.x - 10, player.y - 38, 220, 32);
+          ctx.strokeStyle = '#c084fc';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(player.x - 10, player.y - 38, 220, 32);
+
+          ctx.fillStyle = '#f3e8ff';
+          ctx.font = 'bold 9px sans-serif';
+          ctx.fillText(`Gambar: ${player.width}x${player.height} px`, player.x - 4, player.y - 24);
+
+          ctx.fillStyle = '#4ade80';
+          ctx.font = 'bold 9px monospace';
+          ctx.fillText(`Hitbox: ${colWidth}x${colHeight} (Offset: ${colOffsetX}, ${colOffsetY})`, player.x - 4, player.y - 11);
+        }
         ctx.restore();
       }
 
@@ -606,7 +667,8 @@ export default function PlatformerEngine({
     selectedEntityId,
     selectedPlatformId,
     isPlayerSelected,
-    nearbyEntity
+    nearbyEntity,
+    showHitboxes
   ]);
 
   // ========================================================
@@ -661,13 +723,21 @@ export default function PlatformerEngine({
       }
     }
 
-    // 2. Check Player
-    if (
-      worldX >= playerX &&
-      worldX <= playerX + 44 &&
-      worldY >= playerY &&
-      worldY <= playerY + 60
-    ) {
+    // 2. Check Player (hits visual sprite or collider box)
+    const spriteW = player.width ?? 44;
+    const spriteH = player.height ?? 60;
+    const colW = player.collider?.width ?? spriteW;
+    const colH = player.collider?.height ?? spriteH;
+    const colOffX = player.collider?.offsetX ?? 0;
+    const colOffY = player.collider?.offsetY ?? 0;
+
+    const isPlayerHit = (
+      (worldX >= playerX && worldX <= playerX + spriteW && worldY >= playerY && worldY <= playerY + spriteH) ||
+      (worldX >= playerX + colOffX && worldX <= playerX + colOffX + colW &&
+       worldY >= playerY + colOffY && worldY <= playerY + colOffY + colH)
+    );
+
+    if (isPlayerHit) {
       onSelectPlayer?.(true);
       onSelectEntity?.(null);
       onSelectPlatform?.(null);
@@ -875,8 +945,23 @@ export default function PlatformerEngine({
           )}
         </div>
 
-        {/* Action buttons (Mute, Reset, Exit Test) */}
+        {/* Action buttons (Mute, Reset, Exit Test, Hitbox Debug) */}
         <div className="pointer-events-auto flex items-center gap-2">
+          {/* Hitbox visual toggle */}
+          <button
+            type="button"
+            onClick={() => setShowHitboxes(prev => !prev)}
+            className={`px-2.5 py-1.5 rounded-full text-xs font-semibold backdrop-blur shadow flex items-center gap-1 transition cursor-pointer border ${
+              showHitboxes
+                ? 'bg-emerald-600 text-white border-emerald-400'
+                : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-700'
+            }`}
+            title="Tampilkan / Sembunyikan Area Tabrakan (Hitbox)"
+          >
+            <Crosshair className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Hitbox:</span> {showHitboxes ? 'ON' : 'OFF'}
+          </button>
+
           {mode === 'test' && (
             <button
               onClick={resetPlayer}

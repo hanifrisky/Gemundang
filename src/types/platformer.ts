@@ -10,6 +10,13 @@ export interface SpriteAsset {
   category?: 'character' | 'player' | 'npc' | 'obstacle' | 'decoration' | 'background' | 'platform';
 }
 
+export interface PlayerColliderConfig {
+  width?: number; // Lebar hitbox tabrakan
+  height?: number; // Tinggi hitbox tabrakan
+  offsetX?: number; // Offset horizontal (X) dari tepi kiri gambar visual
+  offsetY?: number; // Offset vertikal (Y) dari tepi atas gambar visual
+}
+
 export interface PlayerConfig {
   canJump: boolean;
   jumpForce: number;
@@ -20,6 +27,9 @@ export interface PlayerConfig {
   editableLabel?: string;
   startX?: number;
   startY?: number;
+  width?: number; // Lebar visual gambar sprite (default: 44)
+  height?: number; // Tinggi visual gambar sprite (default: 60)
+  collider?: PlayerColliderConfig;
 }
 
 export interface ParallaxLayer {

@@ -8,7 +8,8 @@ import {
   Platform,
   ParallaxLayer,
   SpriteAsset,
-  InteractionType
+  InteractionType,
+  PlayerColliderConfig
 } from '@/types/platformer';
 import { getProjectForEdit, saveProject } from '@/lib/projectStorage';
 import AccessNotice from '@/components/auth/AccessNotice';
@@ -34,7 +35,8 @@ import {
   Crosshair,
   ChevronUp,
   ChevronDown,
-  TreePine
+  TreePine,
+  Shield
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -219,6 +221,47 @@ function EditorContent() {
           ...prev.player,
           startX: x,
           startY: y
+        }
+      };
+    });
+  };
+
+  // Player visual dimensions update
+  const updatePlayerDimensions = (width: number, height: number) => {
+    setProject(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        player: {
+          ...prev.player,
+          width: Math.max(16, width),
+          height: Math.max(16, height)
+        }
+      };
+    });
+  };
+
+  // Player collider & offset update
+  const updatePlayerCollider = (colliderUpdates: Partial<PlayerColliderConfig>) => {
+    setProject(prev => {
+      if (!prev) return prev;
+      const currentWidth = prev.player.width ?? 44;
+      const currentHeight = prev.player.height ?? 60;
+      const currentCollider = prev.player.collider || {
+        width: currentWidth,
+        height: currentHeight,
+        offsetX: 0,
+        offsetY: 0
+      };
+
+      return {
+        ...prev,
+        player: {
+          ...prev.player,
+          collider: {
+            ...currentCollider,
+            ...colliderUpdates
+          }
         }
       };
     });
@@ -1288,6 +1331,212 @@ function EditorContent() {
                           onChange={e => updatePlayerPosition(project.player.startX ?? 100, parseInt(e.target.value) || 0)}
                           className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-purple-400"
                         />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Player Visual Image Dimensions */}
+                  <div className="p-3 bg-slate-800/60 rounded-xl border border-slate-700/60 space-y-3">
+                    <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                      <ImageIcon className="w-3.5 h-3.5 text-amber-400" /> Ukuran Gambar Visual Karakter
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] text-slate-400 mb-1">Lebar Gambar (px)</label>
+                        <input
+                          type="number"
+                          min={16}
+                          max={200}
+                          value={project.player.width ?? 44}
+                          onChange={e =>
+                            updatePlayerDimensions(parseInt(e.target.value) || 44, project.player.height ?? 60)
+                          }
+                          className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-slate-400 mb-1">Tinggi Gambar (px)</label>
+                        <input
+                          type="number"
+                          min={16}
+                          max={200}
+                          value={project.player.height ?? 60}
+                          onChange={e =>
+                            updatePlayerDimensions(project.player.width ?? 44, parseInt(e.target.value) || 60)
+                          }
+                          className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Player Collision Detection (Hitbox) & Offset Configuration */}
+                  <div className="p-3.5 bg-emerald-500/10 rounded-xl border border-emerald-500/30 space-y-3.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Shield className="w-4 h-4 text-emerald-400" />
+                        <span className="text-xs font-bold text-emerald-300">
+                          Collision Detection (Area Tabrakan)
+                        </span>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-semibold">
+                        Hitbox
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Atur ukuran kotak tabrakan (*hitbox*) dan *offset* posisinya relatif terhadap gambar karakter agar pijakan kaki dan dinding terasa pas.
+                    </p>
+
+                    {/* Quick Preset Buttons */}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const w = project.player.width ?? 44;
+                          const h = project.player.height ?? 60;
+                          updatePlayerCollider({
+                            width: w,
+                            height: h,
+                            offsetX: 0,
+                            offsetY: 0
+                          });
+                        }}
+                        className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 hover:text-white border border-slate-700 cursor-pointer font-medium"
+                      >
+                        Sama dengan Gambar (100%)
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const w = project.player.width ?? 44;
+                          const h = project.player.height ?? 60;
+                          const cW = Math.round(w * 0.72);
+                          const cH = Math.round(h * 0.9);
+                          const offX = Math.round((w - cW) / 2);
+                          const offY = Math.round(h - cH);
+                          updatePlayerCollider({
+                            width: cW,
+                            height: cH,
+                            offsetX: offX,
+                            offsetY: offY
+                          });
+                        }}
+                        className="px-2 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-[10px] text-emerald-300 border border-emerald-500/40 cursor-pointer font-medium"
+                      >
+                        Presisi Humanoid (Rekomendasi)
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const h = project.player.height ?? 60;
+                          const curH = project.player.collider?.height ?? h;
+                          updatePlayerCollider({
+                            offsetY: Math.max(0, h - curH)
+                          });
+                        }}
+                        className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 hover:text-white border border-slate-700 cursor-pointer font-medium"
+                      >
+                        Ratakan Kaki ke Bawah
+                      </button>
+                    </div>
+
+                    {/* Collider Dimensions */}
+                    <div className="space-y-3 pt-1">
+                      {/* Collider Width */}
+                      <div>
+                        <div className="flex justify-between items-center text-[11px] text-slate-300 mb-1">
+                          <span>Lebar Hitbox (Width)</span>
+                          <span className="font-mono text-emerald-400 font-bold">
+                            {project.player.collider?.width ?? (project.player.width ?? 44)} px
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={10}
+                          max={120}
+                          value={project.player.collider?.width ?? (project.player.width ?? 44)}
+                          onChange={e => updatePlayerCollider({ width: parseInt(e.target.value) || 10 })}
+                          className="w-full accent-emerald-400 cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Collider Height */}
+                      <div>
+                        <div className="flex justify-between items-center text-[11px] text-slate-300 mb-1">
+                          <span>Tinggi Hitbox (Height)</span>
+                          <span className="font-mono text-emerald-400 font-bold">
+                            {project.player.collider?.height ?? (project.player.height ?? 60)} px
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={10}
+                          max={140}
+                          value={project.player.collider?.height ?? (project.player.height ?? 60)}
+                          onChange={e => updatePlayerCollider({ height: parseInt(e.target.value) || 10 })}
+                          className="w-full accent-emerald-400 cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Offset X (Horizontal) */}
+                      <div>
+                        <div className="flex justify-between items-center text-[11px] text-slate-300 mb-1">
+                          <span>Offset X (Geser Horizontal dari Gambar)</span>
+                          <span className="font-mono text-emerald-400 font-bold">
+                            {project.player.collider?.offsetX ?? 0} px
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="range"
+                            min={-40}
+                            max={40}
+                            value={project.player.collider?.offsetX ?? 0}
+                            onChange={e => updatePlayerCollider({ offsetX: parseInt(e.target.value) || 0 })}
+                            className="w-full accent-emerald-400 cursor-pointer"
+                          />
+                          <input
+                            type="number"
+                            value={project.player.collider?.offsetX ?? 0}
+                            onChange={e => updatePlayerCollider({ offsetX: parseInt(e.target.value) || 0 })}
+                            className="w-14 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-center text-white"
+                          />
+                        </div>
+                        <span className="text-[10px] text-slate-500">
+                          Nilai negatif menggeser ke kiri, nilai positif menggeser ke kanan.
+                        </span>
+                      </div>
+
+                      {/* Offset Y (Vertical) */}
+                      <div>
+                        <div className="flex justify-between items-center text-[11px] text-slate-300 mb-1">
+                          <span>Offset Y (Geser Vertikal dari Gambar)</span>
+                          <span className="font-mono text-emerald-400 font-bold">
+                            {project.player.collider?.offsetY ?? 0} px
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="range"
+                            min={-40}
+                            max={40}
+                            value={project.player.collider?.offsetY ?? 0}
+                            onChange={e => updatePlayerCollider({ offsetY: parseInt(e.target.value) || 0 })}
+                            className="w-full accent-emerald-400 cursor-pointer"
+                          />
+                          <input
+                            type="number"
+                            value={project.player.collider?.offsetY ?? 0}
+                            onChange={e => updatePlayerCollider({ offsetY: parseInt(e.target.value) || 0 })}
+                            className="w-14 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-[11px] font-mono text-center text-white"
+                          />
+                        </div>
+                        <span className="text-[10px] text-slate-500">
+                          Nilai positif menggeser hitbox ke bawah (kaki menapak tanah).
+                        </span>
                       </div>
                     </div>
                   </div>
