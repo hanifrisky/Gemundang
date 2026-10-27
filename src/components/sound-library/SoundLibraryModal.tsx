@@ -173,17 +173,17 @@ export default function SoundLibraryModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[88vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[88vh]">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/60">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-slate-800 bg-slate-950/60">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400 shrink-0">
               <Volume2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-white text-base leading-tight">{title}</h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <h3 className="font-bold text-white text-sm sm:text-base leading-tight">{title}</h3>
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
                 Koleksi sound bawaan, upload file audio kustom, atau gunakan URL
               </p>
             </div>
@@ -197,9 +197,9 @@ export default function SoundLibraryModal({
         </div>
 
         {/* Category Selector Tabs */}
-        <div className="px-6 pt-3 pb-2 border-b border-slate-800 bg-slate-900/60">
-          <div className="text-xs font-semibold text-slate-400 mb-2">Target Suara / Event Permainan:</div>
-          <div className="flex flex-wrap gap-1.5">
+        <div className="px-3 sm:px-6 pt-2.5 sm:pt-3 pb-2 border-b border-slate-800 bg-slate-900/60">
+          <div className="text-[11px] sm:text-xs font-semibold text-slate-400 mb-1.5 sm:mb-2">Target Suara / Event Permainan:</div>
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1">
             {(['bgm', 'jump', 'footstep', 'idle', 'proximity', 'interact'] as SoundEventType[]).map((cat) => {
               const active = selectedCategory === cat;
               return (
@@ -210,7 +210,7 @@ export default function SoundLibraryModal({
                     audioEngine.stopPreview();
                     setPlayingId(null);
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
                     active
                       ? 'bg-amber-400 text-slate-950 shadow-md font-bold'
                       : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -220,7 +220,7 @@ export default function SoundLibraryModal({
                   {cat === 'bgm' && 'Musik BGM'}
                   {cat === 'jump' && 'Lompat'}
                   {cat === 'footstep' && 'Langkah'}
-                  {cat === 'idle' && 'Idle / Santai'}
+                  {cat === 'idle' && 'Idle'}
                   {cat === 'proximity' && 'Mendekati'}
                   {cat === 'interact' && 'Interaksi'}
                 </button>
@@ -228,21 +228,21 @@ export default function SoundLibraryModal({
             })}
           </div>
 
-          <div className="mt-2.5 px-3 py-2 rounded-xl bg-slate-800/40 border border-slate-800 text-xs flex items-center justify-between">
-            <span className="text-amber-400 font-semibold">{currentCategoryInfo.title}</span>
-            <span className="text-slate-400 text-[11px] truncate max-w-sm">{currentCategoryInfo.subtitle}</span>
+          <div className="mt-2 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-800/40 border border-slate-800 text-xs flex items-center justify-between">
+            <span className="text-amber-400 font-semibold truncate">{currentCategoryInfo.title}</span>
+            <span className="text-slate-400 text-[11px] truncate max-w-[200px] sm:max-w-sm hidden sm:inline">{currentCategoryInfo.subtitle}</span>
           </div>
         </div>
 
         {/* Source Mode Tabs (Presets / Upload / URL) */}
-        <div className="flex border-b border-slate-800 px-6 gap-6 text-xs font-bold bg-slate-950/30">
+        <div className="flex border-b border-slate-800 px-3 sm:px-6 gap-3 sm:gap-6 text-xs font-bold bg-slate-950/30 overflow-x-auto scrollbar-none">
           <button
             onClick={() => {
               setActiveSourceTab('presets');
               audioEngine.stopPreview();
               setPlayingId(null);
             }}
-            className={`py-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+            className={`py-2.5 sm:py-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
               activeSourceTab === 'presets'
                 ? 'border-amber-400 text-amber-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -257,14 +257,14 @@ export default function SoundLibraryModal({
               audioEngine.stopPreview();
               setPlayingId(null);
             }}
-            className={`py-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+            className={`py-2.5 sm:py-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
               activeSourceTab === 'upload'
                 ? 'border-amber-400 text-amber-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <Upload className="w-3.5 h-3.5" />
-            Upload File Audio (.mp3, .wav, .ogg)
+            Upload File Audio
           </button>
           <button
             onClick={() => {
@@ -272,19 +272,19 @@ export default function SoundLibraryModal({
               audioEngine.stopPreview();
               setPlayingId(null);
             }}
-            className={`py-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+            className={`py-2.5 sm:py-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
               activeSourceTab === 'url'
                 ? 'border-amber-400 text-amber-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <LinkIcon className="w-3.5 h-3.5" />
-            Direct URL / Link Audio
+            Direct URL / Link
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-4">
+        <div className="p-3 sm:p-6 overflow-y-auto flex-1 space-y-4">
           {/* TAB 1: PRESETS */}
           {activeSourceTab === 'presets' && (
             <div className="space-y-3">

@@ -268,24 +268,24 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       {/* TOP NAV */}
-      <nav className="border-b border-slate-800 bg-slate-950/80 px-6 py-3">
+      <nav className="border-b border-slate-800 bg-slate-950/80 px-3 sm:px-6 py-2.5 sm:py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between text-sm">
           <Link href="/" className="flex items-center gap-2 font-extrabold text-white">
             <Gamepad2 className="w-5 h-5 text-amber-400" />
             <span>Gem<span className="text-amber-400">Undang</span></span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {!authLoaded ? null : user ? (
               <>
-                <span className="text-slate-400 text-xs sm:text-sm">
+                <span className="text-slate-400 text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
                   Halo, <b className="text-slate-200">{user.name}</b>
                 </span>
                 <button
                   onClick={handleLogout}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition"
                 >
-                  <LogOut className="w-3.5 h-3.5" /> Keluar
+                  <LogOut className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Keluar</span>
                 </button>
               </>
             ) : (
@@ -303,7 +303,7 @@ export default function HomePage() {
       </nav>
 
       {/* HERO HEADER */}
-      <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur py-8 px-6">
+      <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur py-6 sm:py-8 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-2 text-center md:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold">
@@ -330,10 +330,10 @@ export default function HomePage() {
       </header>
 
       {/* MAIN CONTAINER */}
-      <main className="max-w-6xl mx-auto w-full p-6 space-y-10 flex-1">
+      <main className="max-w-6xl mx-auto w-full p-3 sm:p-6 space-y-8 sm:space-y-10 flex-1">
         {/* NON-USER CALL TO ACTION */}
         {authLoaded && !user && (
-          <section className="bg-gradient-to-br from-slate-900 to-slate-900/40 border border-slate-800 p-6 md:p-8 rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+          <section className="bg-gradient-to-br from-slate-900 to-slate-900/40 border border-slate-800 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-bold text-white">Mulai buat undangan game Anda</h2>
               <p className="text-xs text-slate-400">Daftar atau masuk untuk membuat projek baru, menyimpan, dan membagikan template.</p>
@@ -349,7 +349,7 @@ export default function HomePage() {
         {user && (
           <section
             id="create-project"
-            className="bg-gradient-to-br from-slate-900 to-slate-900/40 border border-slate-800 p-6 md:p-8 rounded-3xl shadow-xl space-y-6"
+            className="bg-gradient-to-br from-slate-900 to-slate-900/40 border border-slate-800 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl shadow-xl space-y-6"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">

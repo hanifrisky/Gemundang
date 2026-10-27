@@ -11,10 +11,13 @@ import {
   Send,
   ExternalLink,
   MessageCircle,
-  Crosshair
+  Crosshair,
+  ArrowUp,
+  Gamepad2
 } from 'lucide-react';
 import { addRSVPToProject } from '@/lib/projectStorage';
 import { audioEngine } from '@/lib/audioEngine';
+import { getDeviceProfile } from '@/lib/deviceDetection';
 
 interface PlatformerEngineProps {
   project: PlatformerProject;
@@ -38,6 +41,13 @@ interface PlatformerEngineProps {
 
   editorCameraX?: number;
   onCameraChange?: (camX: number) => void;
+
+  // Viewport orientation: 'portrait' | 'landscape' | 'responsive'
+  viewportOrientation?: 'portrait' | 'landscape' | 'responsive';
+
+  // Virtual controls visibility: if provided, controlled by parent. If omitted, auto (true in portrait, false in landscape)
+  showControls?: boolean;
+  onToggleControls?: (show: boolean) => void;
 }
 
 export default function PlatformerEngine({
@@ -56,14 +66,78 @@ export default function PlatformerEngine({
   onSelectPlayer,
   onUpdatePlayerPosition,
   editorCameraX,
-  onCameraChange
+  onCameraChange,
+  viewportOrientation = 'responsive',
+  showControls,
+  onToggleControls
 }: PlatformerEngineProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Orientation state: determine if current canvas should render in portrait
+  const [isPortrait, setIsPortrait] = useState<boolean>(() => {
+    if (viewportOrientation === 'portrait') return true;
+    if (viewportOrientation === 'landscape') return false;
+    if (typeof window !== 'undefined') {
+      const dev = getDeviceProfile();
+      return dev.defaultOrientation === 'portrait';
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (viewportOrientation === 'portrait') {
+      setIsPortrait(true);
+    } else if (viewportOrientation === 'landscape') {
+      setIsPortrait(false);
+    } else {
+      const handleResize = () => {
+        const dev = getDeviceProfile();
+        setIsPortrait(dev.defaultOrientation === 'portrait');
+      };
+      handleResize();
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('orientationchange', handleResize);
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('orientationchange', handleResize);
+      };
+    }
+  }, [viewportOrientation]);
+
+  // Virtual controls visibility state:
+  // In portrait: automatically open. In landscape/desktop: default hidden (can be toggled)
+  const [internalShowControls, setInternalShowControls] = useState<boolean>(() => {
+    if (showControls !== undefined) return showControls;
+    return isPortrait;
+  });
+
+  useEffect(() => {
+    if (showControls !== undefined) {
+      setInternalShowControls(showControls);
+    } else {
+      setInternalShowControls(isPortrait);
+    }
+  }, [showControls, isPortrait]);
+
+  const effectiveShowControls = showControls !== undefined ? showControls : internalShowControls;
+
+  const toggleControls = () => {
+    const next = !effectiveShowControls;
+    setInternalShowControls(next);
+    onToggleControls?.(next);
+  };
 
   // Active interaction modal state
   const [activeEntity, setActiveEntity] = useState<InteractiveEntity | null>(null);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [nearbyEntity, setNearbyEntity] = useState<InteractiveEntity | null>(null);
+
+  // Active touch buttons feedback
+  const [activeTouchKeys, setActiveTouchKeys] = useState<{ left: boolean; right: boolean; jump: boolean }>({
+    left: false,
+    right: false,
+    jump: false
+  });
 
   // RSVP Form internal state
   const [rsvpName, setRsvpName] = useState(guestName || '');
@@ -716,29 +790,29 @@ export default function PlatformerEngine({
   ]);
 
   // ========================================================
-  // PREVIEW / EDITOR MOUSE INTERACTIONS (DRAG & SELECT & PAN)
+  // PREVIEW / EDITOR MOUSE & TOUCH INTERACTIONS (DRAG & SELECT & PAN)
   // ========================================================
-  const getCanvasWorldCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getCanvasWorldCoords = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return { worldX: 0, worldY: 0, canvasX: 0, canvasY: 0 };
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const canvasX = (e.clientX - rect.left) * scaleX;
-    const canvasY = (e.clientY - rect.top) * scaleY;
+    const canvasX = (clientX - rect.left) * scaleX;
+    const canvasY = (clientY - rect.top) * scaleY;
     const worldX = Math.round(canvasX + previewCamXRef.current);
     const worldY = Math.round(canvasY);
     return { worldX, worldY, canvasX, canvasY };
   };
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handlePointerDown = (clientX: number, clientY: number) => {
     if (mode !== 'preview') {
       if (!isAudioMuted) {
         audioEngine.startBGM(project.audio?.bgm);
       }
       return;
     }
-    const { worldX, worldY } = getCanvasWorldCoords(e);
+    const { worldX, worldY } = getCanvasWorldCoords(clientX, clientY);
     const { entities, world, player } = project;
     const playerX = player.startX ?? 100;
     const playerY = player.startY ?? (world.groundY ? world.groundY - 64 : 396);
@@ -764,7 +838,7 @@ export default function PlatformerEngine({
           startObjY: ent.y,
           mouseStartWorldX: worldX,
           mouseStartWorldY: worldY,
-          clientStartX: e.clientX,
+          clientStartX: clientX,
           startCamX: previewCamXRef.current
         };
         setCanvasCursor('move');
@@ -800,7 +874,7 @@ export default function PlatformerEngine({
         startObjY: playerY,
         mouseStartWorldX: worldX,
         mouseStartWorldY: worldY,
-        clientStartX: e.clientX,
+        clientStartX: clientX,
         startCamX: previewCamXRef.current
       };
       setCanvasCursor('move');
@@ -829,7 +903,7 @@ export default function PlatformerEngine({
             startObjY: plat.y,
             mouseStartWorldX: worldX,
             mouseStartWorldY: worldY,
-            clientStartX: e.clientX,
+            clientStartX: clientX,
             startCamX: previewCamXRef.current
           };
           setCanvasCursor('move');
@@ -846,15 +920,15 @@ export default function PlatformerEngine({
       startObjY: 0,
       mouseStartWorldX: worldX,
       mouseStartWorldY: worldY,
-      clientStartX: e.clientX,
+      clientStartX: clientX,
       startCamX: previewCamXRef.current
     };
     setCanvasCursor('grabbing');
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handlePointerMove = (clientX: number, clientY: number) => {
     if (mode !== 'preview') return;
-    const { worldX, worldY } = getCanvasWorldCoords(e);
+    const { worldX, worldY } = getCanvasWorldCoords(clientX, clientY);
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -883,7 +957,7 @@ export default function PlatformerEngine({
         const newY = Math.max(10, Math.min(canvas.height - 70, drag.startObjY + deltaY));
         onUpdatePlayerPosition?.(Math.round(newX), Math.round(newY));
       } else if (drag.type === 'pan') {
-        const deltaClientX = e.clientX - drag.clientStartX;
+        const deltaClientX = clientX - drag.clientStartX;
         const maxCam = Math.max(0, project.world.worldWidth - canvas.width);
         const newCamX = Math.max(0, Math.min(maxCam, Math.round(drag.startCamX - deltaClientX)));
         previewCamXRef.current = newCamX;
@@ -899,18 +973,15 @@ export default function PlatformerEngine({
     const playerY = player.startY ?? (world.groundY ? world.groundY - 64 : 396);
 
     let isOverItem = false;
-    // Over entity?
     for (const ent of entities) {
       if (worldX >= ent.x && worldX <= ent.x + ent.width && worldY >= ent.y && worldY <= ent.y + ent.height) {
         isOverItem = true;
         break;
       }
     }
-    // Over player?
     if (!isOverItem && worldX >= playerX && worldX <= playerX + 44 && worldY >= playerY && worldY <= playerY + 60) {
       isOverItem = true;
     }
-    // Over platform?
     if (!isOverItem && world.platforms) {
       for (const plat of world.platforms) {
         if (worldX >= plat.x && worldX <= plat.x + plat.width && worldY >= plat.y && worldY <= plat.y + plat.height) {
@@ -923,11 +994,40 @@ export default function PlatformerEngine({
     setCanvasCursor(isOverItem ? 'pointer' : 'grab');
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = () => {
     if (dragRef.current) {
       dragRef.current = null;
     }
     setCanvasCursor('default');
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    handlePointerDown(e.clientX, e.clientY);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    handlePointerMove(e.clientX, e.clientY);
+  };
+
+  const handleMouseUp = () => {
+    handlePointerUp();
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (mode !== 'preview' || e.touches.length === 0) return;
+    const t = e.touches[0];
+    handlePointerDown(t.clientX, t.clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (mode !== 'preview' || e.touches.length === 0) return;
+    const t = e.touches[0];
+    handlePointerMove(t.clientX, t.clientY);
+  };
+
+  const handleTouchEnd = () => {
+    if (mode !== 'preview') return;
+    handlePointerUp();
   };
 
   // Wheel panning in preview mode
@@ -967,155 +1067,274 @@ export default function PlatformerEngine({
     });
   };
 
+  const canvasWidth = isPortrait ? 450 : 800;
+  const canvasHeight = isPortrait ? 600 : 500;
+
   return (
     <div className={`relative flex flex-col items-center justify-center bg-slate-950 select-none overflow-hidden ${className}`}>
-      {/* Canvas Viewport */}
-      <canvas
-        ref={canvasRef}
-        width={800}
-        height={500}
-        style={{ cursor: mode === 'preview' ? canvasCursor : 'default' }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
-        className="w-full h-auto max-w-4xl aspect-[16/10] bg-sky-200 rounded-xl shadow-2xl border border-slate-800"
-      />
+      {/* Canvas Viewport Container */}
+      <div className={`relative w-full ${isPortrait ? 'max-w-md' : 'max-w-4xl'} flex items-center justify-center`}>
+        <canvas
+          ref={canvasRef}
+          width={canvasWidth}
+          height={canvasHeight}
+          style={{
+            cursor: mode === 'preview' ? canvasCursor : 'default',
+            touchAction: mode === 'preview' ? 'none' : 'auto'
+          }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          className={`w-full h-auto bg-sky-200 rounded-2xl shadow-2xl border border-slate-800 ${
+            isPortrait ? 'aspect-[3/4]' : 'aspect-[16/10]'
+          }`}
+        />
 
-      {/* Top Overlay Controls */}
-      <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
-        {/* Title or Guest Greeting */}
-        <div className="pointer-events-auto bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-700/60 shadow-lg text-xs md:text-sm text-slate-100 flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="font-semibold">{project.title}</span>
-          {guestName && (
-            <span className="text-amber-300 font-medium border-l border-slate-700 pl-2">
-              Tamu: {guestName}
-            </span>
-          )}
+        {/* Top Overlay Controls */}
+        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none gap-2">
+          {/* Title or Guest Greeting */}
+          <div className="pointer-events-auto bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-700/60 shadow-lg text-xs text-slate-100 flex items-center gap-1.5 sm:gap-2 truncate max-w-[65%]">
+            <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="font-semibold truncate">{project.title}</span>
+            {guestName && (
+              <span className="text-amber-300 font-medium border-l border-slate-700 pl-1.5 sm:pl-2 shrink-0">
+                Tamu: {guestName}
+              </span>
+            )}
+          </div>
+
+          {/* Action buttons (Mute, Reset, Exit Test, Hitbox Debug) */}
+          <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Hitbox visual toggle (Hanya tampil di Test Mode) */}
+            {mode === 'test' && (
+              <button
+                type="button"
+                onClick={() => setShowHitboxes(prev => !prev)}
+                className={`px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full text-[11px] font-semibold backdrop-blur shadow flex items-center gap-1 transition cursor-pointer border ${
+                  showHitboxes
+                    ? 'bg-emerald-600 text-white border-emerald-400'
+                    : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-700'
+                }`}
+                title="Tampilkan / Sembunyikan Area Tabrakan (Hitbox)"
+              >
+                <Crosshair className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span className="hidden sm:inline">Hitbox:</span> {showHitboxes ? 'ON' : 'OFF'}
+              </button>
+            )}
+
+            {mode === 'test' && (
+              <button
+                onClick={resetPlayer}
+                className="bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] font-semibold shadow flex items-center gap-1 transition"
+                title="Reset Posisi Karakter"
+              >
+                <RotateCcw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span className="hidden sm:inline">Reset Pos</span>
+              </button>
+            )}
+
+            {mode === 'test' && onExitTestMode && (
+              <button
+                onClick={onExitTestMode}
+                className="bg-rose-600 hover:bg-rose-500 text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] font-semibold shadow flex items-center gap-1 transition cursor-pointer"
+              >
+                <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span className="hidden sm:inline">Keluar</span>
+              </button>
+            )}
+
+            {/* Toggle Virtual Controls Button */}
+            {mode !== 'preview' && (
+              <button
+                type="button"
+                onClick={toggleControls}
+                className={`p-1.5 sm:p-2 rounded-full border backdrop-blur shadow transition cursor-pointer ${
+                  effectiveShowControls
+                    ? 'bg-amber-500 text-slate-950 border-amber-300 font-bold'
+                    : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-700'
+                }`}
+                title={effectiveShowControls ? 'Sembunyikan Tombol Virtual' : 'Tampilkan Tombol Virtual'}
+              >
+                <Gamepad2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                const newMuted = !isAudioMuted;
+                setIsAudioMuted(newMuted);
+                audioEngine.setMuted(newMuted);
+                if (!newMuted) {
+                  audioEngine.startBGM(project.audio?.bgm);
+                }
+              }}
+              className="p-1.5 sm:p-2 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700 backdrop-blur shadow transition cursor-pointer"
+              title={isAudioMuted ? 'Nyalakan Musik & Suara' : 'Matikan Musik & Suara'}
+            >
+              {isAudioMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+            </button>
+          </div>
         </div>
 
-        {/* Action buttons (Mute, Reset, Exit Test, Hitbox Debug) */}
-        <div className="pointer-events-auto flex items-center gap-2">
-          {/* Hitbox visual toggle (Hanya tampil di Test Mode, TIDAK tampil di Public View / Play Mode) */}
-          {mode === 'test' && (
-            <button
-              type="button"
-              onClick={() => setShowHitboxes(prev => !prev)}
-              className={`px-2.5 py-1.5 rounded-full text-xs font-semibold backdrop-blur shadow flex items-center gap-1 transition cursor-pointer border ${
-                showHitboxes
-                  ? 'bg-emerald-600 text-white border-emerald-400'
-                  : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-700'
-              }`}
-              title="Tampilkan / Sembunyikan Area Tabrakan (Hitbox)"
-            >
-              <Crosshair className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Hitbox:</span> {showHitboxes ? 'ON' : 'OFF'}
-            </button>
-          )}
-
-          {mode === 'test' && (
-            <button
-              onClick={resetPlayer}
-              className="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow flex items-center gap-1.5 transition"
-              title="Reset Posisi Karakter"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Reset Pos
-            </button>
-          )}
-
-          {mode === 'test' && onExitTestMode && (
-            <button
-              onClick={onExitTestMode}
-              className="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" />
-              Keluar Test
-            </button>
-          )}
-
-          <button
-            onClick={() => {
-              const newMuted = !isAudioMuted;
-              setIsAudioMuted(newMuted);
-              audioEngine.setMuted(newMuted);
-              if (!newMuted) {
-                audioEngine.startBGM(project.audio?.bgm);
-              }
-            }}
-            className="p-2 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700 backdrop-blur shadow transition cursor-pointer"
-            title={isAudioMuted ? 'Nyalakan Musik & Suara' : 'Matikan Musik & Suara'}
-          >
-            {isAudioMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </button>
-        </div>
+        {/* Proximity Interaction Hint Pill in Play/Test mode */}
+        {mode !== 'preview' && nearbyEntity && !activeEntity && (
+          <div className="absolute top-14 sm:top-16 animate-bounce bg-amber-500 text-slate-950 font-bold px-3 sm:px-4 py-1.5 rounded-full shadow-xl border-2 border-white text-xs md:text-sm flex items-center gap-1.5 sm:gap-2 z-10 pointer-events-none">
+            <MessageCircle className="w-4 h-4 shrink-0" />
+            <span className="truncate">Tekan [E] atau tombol Bicara</span>
+          </div>
+        )}
       </div>
 
-      {/* Proximity Interaction Hint Pill in Play/Test mode */}
-      {mode !== 'preview' && nearbyEntity && !activeEntity && (
-        <div className="absolute top-16 animate-bounce bg-amber-500 text-slate-950 font-bold px-4 py-1.5 rounded-full shadow-xl border-2 border-white text-xs md:text-sm flex items-center gap-2 z-10">
-          <MessageCircle className="w-4 h-4" />
-          <span>Tekan [E] atau tombol Action untuk bicara dengan {nearbyEntity.name}</span>
-        </div>
-      )}
-
-      {/* Mobile Virtual Controls (Only in play/test mode) */}
-      {mode !== 'preview' && (
-        <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between pointer-events-none md:hidden z-10">
-          {/* D-Pad Horizontal */}
-          <div className="pointer-events-auto flex gap-3">
+      {/* VIRTUAL CONTROLLER BAR (DI BAGIAN BAWAH CANVAS) */}
+      {mode !== 'preview' && effectiveShowControls && (
+        <div className={`w-full ${isPortrait ? 'max-w-md' : 'max-w-4xl'} mt-2.5 sm:mt-3 px-3 py-2.5 sm:py-3.5 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-xl flex items-center justify-between gap-2 sm:gap-4 select-none touch-none animate-in fade-in duration-200`}>
+          {/* Left Thumb D-Pad (Left & Right) */}
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
-              onTouchStart={() => (keysRef.current.left = true)}
-              onTouchEnd={() => (keysRef.current.left = false)}
-              onMouseDown={() => (keysRef.current.left = true)}
-              onMouseUp={() => (keysRef.current.left = false)}
-              className="w-14 h-14 rounded-2xl bg-slate-900/80 active:bg-amber-500 text-white active:text-slate-950 text-xl font-bold flex items-center justify-center border-2 border-slate-600 backdrop-blur shadow-xl select-none"
+              type="button"
+              onPointerDown={() => {
+                keysRef.current.left = true;
+                setActiveTouchKeys(prev => ({ ...prev, left: true }));
+                if (!isAudioMuted) audioEngine.startBGM(project.audio?.bgm);
+              }}
+              onPointerUp={() => {
+                keysRef.current.left = false;
+                setActiveTouchKeys(prev => ({ ...prev, left: false }));
+              }}
+              onPointerCancel={() => {
+                keysRef.current.left = false;
+                setActiveTouchKeys(prev => ({ ...prev, left: false }));
+              }}
+              onPointerLeave={() => {
+                keysRef.current.left = false;
+                setActiveTouchKeys(prev => ({ ...prev, left: false }));
+              }}
+              onContextMenu={(e) => e.preventDefault()}
+              className={`w-13 h-13 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center font-bold text-xl sm:text-2xl transition border-2 shadow-lg select-none cursor-pointer active:scale-95 touch-none ${
+                activeTouchKeys.left
+                  ? 'bg-amber-500 text-slate-950 border-amber-300 ring-2 ring-amber-400/50 shadow-amber-500/30'
+                  : 'bg-slate-800/90 hover:bg-slate-700/90 text-white border-slate-700'
+              }`}
+              aria-label="Gerak Kiri"
             >
               ◀
             </button>
+
             <button
-              onTouchStart={() => (keysRef.current.right = true)}
-              onTouchEnd={() => (keysRef.current.right = false)}
-              onMouseDown={() => (keysRef.current.right = true)}
-              onMouseUp={() => (keysRef.current.right = false)}
-              className="w-14 h-14 rounded-2xl bg-slate-900/80 active:bg-amber-500 text-white active:text-slate-950 text-xl font-bold flex items-center justify-center border-2 border-slate-600 backdrop-blur shadow-xl select-none"
+              type="button"
+              onPointerDown={() => {
+                keysRef.current.right = true;
+                setActiveTouchKeys(prev => ({ ...prev, right: true }));
+                if (!isAudioMuted) audioEngine.startBGM(project.audio?.bgm);
+              }}
+              onPointerUp={() => {
+                keysRef.current.right = false;
+                setActiveTouchKeys(prev => ({ ...prev, right: false }));
+              }}
+              onPointerCancel={() => {
+                keysRef.current.right = false;
+                setActiveTouchKeys(prev => ({ ...prev, right: false }));
+              }}
+              onPointerLeave={() => {
+                keysRef.current.right = false;
+                setActiveTouchKeys(prev => ({ ...prev, right: false }));
+              }}
+              onContextMenu={(e) => e.preventDefault()}
+              className={`w-13 h-13 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center font-bold text-xl sm:text-2xl transition border-2 shadow-lg select-none cursor-pointer active:scale-95 touch-none ${
+                activeTouchKeys.right
+                  ? 'bg-amber-500 text-slate-950 border-amber-300 ring-2 ring-amber-400/50 shadow-amber-500/30'
+                  : 'bg-slate-800/90 hover:bg-slate-700/90 text-white border-slate-700'
+              }`}
+              aria-label="Gerak Kanan"
             >
               ▶
             </button>
           </div>
 
-          {/* Action Buttons (Jump & Interact) */}
-          <div className="pointer-events-auto flex gap-3">
-            {nearbyEntity && (
-              <button
-                onClick={() => {
+          {/* Center: status / branding / proximity hint */}
+          <div className="flex flex-col items-center justify-center text-center px-1">
+            {nearbyEntity ? (
+              <span className="text-[10px] sm:text-xs font-bold text-amber-400 animate-pulse flex items-center gap-1">
+                <MessageCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                Bicara!
+              </span>
+            ) : (
+              <span className="text-[9px] sm:text-[10px] text-slate-500 font-mono tracking-wider">
+                GemPad
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={resetPlayer}
+              className="mt-0.5 text-[10px] text-slate-400 hover:text-amber-400 flex items-center gap-1 transition cursor-pointer"
+              title="Reset Karakter"
+            >
+              <RotateCcw className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+              Reset
+            </button>
+          </div>
+
+          {/* Right Thumb Action buttons (Interact & Jump) */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Interact / Chat button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (nearbyEntity) {
                   audioEngine.playInteraction(project.audio?.interact);
                   setActiveEntity(nearbyEntity);
-                }}
-                className="w-14 h-14 rounded-2xl bg-amber-500 active:bg-amber-400 text-slate-950 font-bold flex flex-col items-center justify-center border-2 border-white shadow-xl animate-pulse select-none text-xs"
-              >
-                <MessageCircle className="w-5 h-5 mb-0.5" />
-                Chat
-              </button>
-            )}
+                }
+              }}
+              onContextMenu={(e) => e.preventDefault()}
+              disabled={!nearbyEntity}
+              className={`w-13 h-13 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center transition border-2 shadow-lg select-none cursor-pointer active:scale-95 touch-none ${
+                nearbyEntity
+                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-white ring-2 ring-amber-400/60 font-bold animate-pulse'
+                  : 'bg-slate-800/40 text-slate-600 border-slate-800 cursor-not-allowed opacity-50'
+              }`}
+              aria-label="Bicara atau Interaksi"
+            >
+              <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
+              <span className="text-[9px] sm:text-[10px] font-bold">Bicara</span>
+            </button>
 
+            {/* Jump button */}
             {project.player.canJump && (
               <button
-                onTouchStart={() => {
+                type="button"
+                onPointerDown={() => {
                   keysRef.current.jump = true;
+                  setActiveTouchKeys(prev => ({ ...prev, jump: true }));
                   if (!isAudioMuted) audioEngine.startBGM(project.audio?.bgm);
                 }}
-                onTouchEnd={() => (keysRef.current.jump = false)}
-                onMouseDown={() => {
-                  keysRef.current.jump = true;
-                  if (!isAudioMuted) audioEngine.startBGM(project.audio?.bgm);
+                onPointerUp={() => {
+                  keysRef.current.jump = false;
+                  setActiveTouchKeys(prev => ({ ...prev, jump: false }));
                 }}
-                onMouseUp={() => (keysRef.current.jump = false)}
-                className="w-14 h-14 rounded-2xl bg-emerald-600 active:bg-emerald-400 text-white active:text-slate-950 text-sm font-bold flex items-center justify-center border-2 border-emerald-400 backdrop-blur shadow-xl select-none"
+                onPointerCancel={() => {
+                  keysRef.current.jump = false;
+                  setActiveTouchKeys(prev => ({ ...prev, jump: false }));
+                }}
+                onPointerLeave={() => {
+                  keysRef.current.jump = false;
+                  setActiveTouchKeys(prev => ({ ...prev, jump: false }));
+                }}
+                onContextMenu={(e) => e.preventDefault()}
+                className={`w-13 h-13 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center font-bold transition border-2 shadow-lg select-none cursor-pointer active:scale-95 touch-none ${
+                  activeTouchKeys.jump
+                    ? 'bg-emerald-400 text-slate-950 border-emerald-200 ring-2 ring-emerald-400/50'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400'
+                }`}
+                aria-label="Lompat"
               >
-                Lompat
+                <ArrowUp className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
+                <span className="text-[9px] sm:text-[10px] font-bold">Lompat</span>
               </button>
             )}
           </div>
@@ -1133,8 +1352,8 @@ export default function PlatformerEngine({
 
       {/* POPUP MODAL DIALOGS */}
       {activeEntity && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border border-amber-500/40 rounded-2xl p-6 shadow-2xl text-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-3 sm:p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg max-h-[88vh] overflow-y-auto bg-gradient-to-b from-slate-900 to-slate-950 border border-amber-500/40 rounded-2xl p-4 sm:p-6 shadow-2xl text-slate-100">
             <button
               onClick={() => {
                 setActiveEntity(null);
@@ -1275,11 +1494,11 @@ export default function PlatformerEngine({
                         value={rsvpName}
                         onChange={e => setRsvpName(e.target.value)}
                         placeholder="Masukkan nama Anda..."
-                        className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-base sm:text-sm focus:outline-none focus:border-amber-400"
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-slate-300 mb-1">
                           Konfirmasi Kehadiran
@@ -1287,7 +1506,7 @@ export default function PlatformerEngine({
                         <select
                           value={rsvpStatus}
                           onChange={e => setRsvpStatus(e.target.value as 'hadir' | 'tidak_hadir' | 'ragu')}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400"
+                          className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-base sm:text-sm focus:outline-none focus:border-amber-400 cursor-pointer"
                         >
                           <option value="hadir">Pasti Hadir</option>
                           <option value="tidak_hadir">Maaf Tidak Bisa Hadir</option>
@@ -1305,7 +1524,7 @@ export default function PlatformerEngine({
                           max={5}
                           value={rsvpPax}
                           onChange={e => setRsvpPax(parseInt(e.target.value) || 1)}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400"
+                          className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-base sm:text-sm focus:outline-none focus:border-amber-400"
                         />
                       </div>
                     </div>
@@ -1319,13 +1538,13 @@ export default function PlatformerEngine({
                         value={rsvpMessage}
                         onChange={e => setRsvpMessage(e.target.value)}
                         placeholder="Tuliskan pesan doa & restu untuk yang berhajat..."
-                        className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400 resize-none"
+                        className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-base sm:text-sm focus:outline-none focus:border-amber-400 resize-none"
                       />
                     </div>
 
                     <button
                       type="submit"
-                      className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition shadow-lg text-sm flex items-center justify-center gap-2"
+                      className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition shadow-lg text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
                     >
                       <Send className="w-4 h-4" />
                       Kirim Konfirmasi Kehadiran

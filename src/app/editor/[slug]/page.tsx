@@ -61,6 +61,7 @@ function EditorContent() {
   const [project, setProject] = useState<PlatformerProject | null>(null);
   const [isTestPlayMode, setIsTestPlayMode] = useState(false);
   const [activeTab, setActiveTab] = useState<'entities' | 'world' | 'player' | 'parallax' | 'audio'>('entities');
+  const [mobileEditorTab, setMobileEditorTab] = useState<'canvas' | 'inspector'>('canvas');
 
   // Selected item state
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
@@ -412,32 +413,32 @@ function EditorContent() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       {/* TOP HEADER & ACTION BAR */}
-      <header className="h-16 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="min-h-16 h-auto border-b border-slate-800 bg-slate-900/90 backdrop-blur px-3 py-2.5 sm:px-4 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 max-w-[50%] sm:max-w-none">
           <Link
             href="/"
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+            className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
             title="Kembali ke Dashboard"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-white text-base">{project.title}</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">
+          <div className="truncate">
+            <div className="flex items-center gap-1.5 truncate">
+              <span className="font-bold text-white text-sm sm:text-base truncate">{project.title}</span>
+              <span className="hidden sm:inline text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 shrink-0">
                 slug: {project.slug}
               </span>
             </div>
-            <p className="text-xs text-slate-400">Platformer Level & World Editor</p>
+            <p className="text-[10px] sm:text-xs text-slate-400 truncate">Platformer Level & World Editor</p>
           </div>
         </div>
 
         {/* Action Controls & Navigation Switcher */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Instant Test Play Mode Toggle */}
           <button
             onClick={() => setIsTestPlayMode(!isTestPlayMode)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg cursor-pointer ${
+            className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-lg cursor-pointer ${
               isTestPlayMode
                 ? 'bg-rose-600 hover:bg-rose-500 text-white animate-pulse'
                 : 'bg-emerald-600 hover:bg-emerald-500 text-white'
@@ -445,13 +446,15 @@ function EditorContent() {
           >
             {isTestPlayMode ? (
               <>
-                <Pause className="w-4 h-4" />
-                Kembali ke Mode Edit
+                <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Kembali ke Edit</span>
+                <span className="sm:hidden">Edit</span>
               </>
             ) : (
               <>
-                <Play className="w-4 h-4" />
-                Coba Game (Test Play)
+                <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Coba Game</span>
+                <span className="sm:hidden">Test</span>
               </>
             )}
           </button>
@@ -459,35 +462,65 @@ function EditorContent() {
           {/* Direct Link to Template Mode */}
           <Link
             href={`/template/${project.slug}`}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition"
+            className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1 sm:gap-1.5 transition"
             title="Buka Formulir Mode Template"
           >
-            <Edit3 className="w-4 h-4 text-sky-400" />
-            Mode Template
+            <Edit3 className="w-3.5 h-3.5 text-sky-400" />
+            <span className="hidden sm:inline">Template</span>
           </Link>
 
           {/* Direct Link to Playable View */}
           <Link
             href={`/view/${project.slug}`}
             target="_blank"
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition"
+            className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1 sm:gap-1.5 transition"
             title="Buka Undangan Tamu Fullscreen"
           >
-            <Eye className="w-4 h-4 text-emerald-400" />
-            View Game
-            <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+            <Eye className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">View</span>
+            <ExternalLink className="w-3 h-3 text-slate-400 hidden sm:inline" />
           </Link>
 
           {/* Save Button */}
           <button
             onClick={handleSave}
-            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg transition cursor-pointer"
+            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg transition cursor-pointer"
           >
-            <Save className="w-4 h-4" />
-            Simpan Projek
+            <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>Simpan</span>
           </button>
         </div>
       </header>
+
+      {/* MOBILE VIEW SWITCHER (VISIBLE ON SCREENS < 1024px) */}
+      {!isTestPlayMode && (
+        <div className="lg:hidden bg-slate-900 border-b border-slate-800 px-3 py-2 flex items-center justify-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setMobileEditorTab('canvas')}
+            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+              mobileEditorTab === 'canvas'
+                ? 'bg-amber-500 text-slate-950 shadow'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            Viewport Canvas
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileEditorTab('inspector')}
+            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+              mobileEditorTab === 'inspector'
+                ? 'bg-amber-500 text-slate-950 shadow'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            Pengaturan & Objek ({project.entities.length})
+          </button>
+        </div>
+      )}
 
       {/* SUCCESS NOTIFICATION TOAST */}
       {saveSuccessNotice && (
@@ -498,9 +531,9 @@ function EditorContent() {
       )}
 
       {/* MAIN EDITOR WORKSPACE */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* CENTER VIEWPORT (CANVAS & LEVEL NAVIGATION) */}
-        <div className="flex-1 bg-slate-950 p-4 md:p-6 flex flex-col items-center justify-start overflow-y-auto">
+        <div className={`flex-1 bg-slate-950 p-2 sm:p-4 md:p-6 flex flex-col items-center justify-start overflow-y-auto ${!isTestPlayMode && mobileEditorTab === 'inspector' ? 'hidden lg:flex' : 'flex'}`}>
           {isTestPlayMode ? (
             <div className="w-full max-w-4xl space-y-3">
               <div className="flex items-center justify-between text-xs text-slate-400">
@@ -590,7 +623,17 @@ function EditorContent() {
                   </div>
 
                   {/* Quick Jump Buttons */}
-                  <div className="flex items-center gap-1.5 text-[11px]">
+                  <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                    {(selectedEntityId || selectedPlatformId || isPlayerSelected) && (
+                      <button
+                        type="button"
+                        onClick={() => setMobileEditorTab('inspector')}
+                        className="lg:hidden px-2.5 py-1 rounded bg-amber-500 text-slate-950 font-bold transition cursor-pointer flex items-center gap-1"
+                        title="Buka Tab Pengaturan Objek"
+                      >
+                        ⚙️ Edit Objek Terpilih
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => focusCameraOn(0)}
@@ -656,9 +699,9 @@ function EditorContent() {
 
         {/* RIGHT SIDEBAR / INSPECTOR PANEL */}
         {!isTestPlayMode && (
-          <aside className="w-96 border-l border-slate-800 bg-slate-900 flex flex-col shrink-0 overflow-hidden">
+          <aside className={`w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-slate-800 bg-slate-900 flex flex-col shrink-0 overflow-hidden ${mobileEditorTab === 'canvas' ? 'hidden lg:flex' : 'flex flex-1'}`}>
             {/* Sidebar Tabs */}
-            <div className="flex border-b border-slate-800 px-4 pt-3 gap-3 text-xs font-bold overflow-x-auto scrollbar-none">
+            <div className="flex border-b border-slate-800 px-3 sm:px-4 pt-3 gap-2 sm:gap-3 text-xs font-bold overflow-x-auto scrollbar-none">
               <button
                 onClick={() => setActiveTab('entities')}
                 className={`pb-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer shrink-0 ${

@@ -212,13 +212,13 @@ export default function AssetLibraryModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
-      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[88vh] overflow-hidden text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in">
+      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden text-slate-100">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/60">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-slate-800 bg-slate-950/60">
           <div className="flex items-center gap-2.5">
             <Sparkles className="w-5 h-5 text-amber-400" />
-            <h3 className="font-bold text-base md:text-lg text-white">{title}</h3>
+            <h3 className="font-bold text-sm sm:text-base md:text-lg text-white">{title}</h3>
           </div>
           <button
             onClick={onClose}
@@ -229,51 +229,51 @@ export default function AssetLibraryModal({
         </div>
 
         {/* Top Mode Tabs */}
-        <div className="flex border-b border-slate-800 px-6 pt-3 gap-6 text-xs md:text-sm">
+        <div className="flex border-b border-slate-800 px-3 sm:px-6 pt-2.5 sm:pt-3 gap-3 sm:gap-6 text-xs md:text-sm overflow-x-auto scrollbar-none">
           <button
             onClick={() => setActiveTab('presets')}
-            className={`pb-3 font-semibold transition border-b-2 cursor-pointer flex items-center gap-1.5 ${
+            className={`pb-2.5 sm:pb-3 font-semibold transition border-b-2 cursor-pointer flex items-center gap-1.5 shrink-0 ${
               activeTab === 'presets'
                 ? 'border-amber-400 text-amber-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <Sparkles className="w-4 h-4" />
-            Pustaka Bawaan (Default Catalog)
+            Pustaka Bawaan
           </button>
 
           <button
             onClick={() => setActiveTab('upload')}
-            className={`pb-3 font-semibold transition border-b-2 flex items-center gap-1.5 cursor-pointer ${
+            className={`pb-2.5 sm:pb-3 font-semibold transition border-b-2 flex items-center gap-1.5 cursor-pointer shrink-0 ${
               activeTab === 'upload'
                 ? 'border-amber-400 text-amber-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <Upload className="w-4 h-4" />
-            Upload File Komputer
+            Upload File
           </button>
 
           <button
             onClick={() => setActiveTab('url')}
-            className={`pb-3 font-semibold transition border-b-2 flex items-center gap-1.5 cursor-pointer ${
+            className={`pb-2.5 sm:pb-3 font-semibold transition border-b-2 flex items-center gap-1.5 cursor-pointer shrink-0 ${
               activeTab === 'url'
                 ? 'border-amber-400 text-amber-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <LinkIcon className="w-4 h-4" />
-            URL / Link Gambar
+            URL / Link
           </button>
         </div>
 
         {/* Tab Body */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-4">
+        <div className="p-3 sm:p-6 overflow-y-auto flex-1 space-y-4">
           {/* TAB 1: PRESET CATALOG */}
           {activeTab === 'presets' && (
             <div className="space-y-4">
               {/* Category Filter Chips */}
-              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              <div className="flex items-center gap-1.5 text-xs overflow-x-auto scrollbar-none pb-1">
                 <span className="text-slate-400 text-[11px] mr-1">Filter Kategori:</span>
                 {categoryTabs.map(cat => {
                   const Icon = cat.icon;

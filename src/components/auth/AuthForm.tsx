@@ -36,11 +36,11 @@ export default function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   };
 
   const inputClass =
-    'w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white focus:outline-none focus:border-amber-400';
+    'w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-base sm:text-sm text-white focus:outline-none focus:border-amber-400';
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-xl space-y-6">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-3 sm:p-6">
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-xl space-y-6">
         <div className="text-center space-y-2">
           <Link href="/" className="inline-flex items-center gap-2 text-2xl font-extrabold text-white">
             <Gamepad2 className="w-6 h-6 text-amber-400" />
