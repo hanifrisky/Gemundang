@@ -1,0 +1,1188 @@
+'use client';
+
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { PlatformerProject, InteractiveEntity, SpriteAsset } from '@/types/platformer';
+import confetti from 'canvas-confetti';
+import {
+  Volume2,
+  VolumeX,
+  RotateCcw,
+  X,
+  Send,
+  ExternalLink,
+  MessageCircle
+} from 'lucide-react';
+import { addRSVPToProject } from '@/lib/projectStorage';
+
+interface PlatformerEngineProps {
+  project: PlatformerProject;
+  mode?: 'play' | 'test' | 'preview';
+  guestName?: string;
+  onExitTestMode?: () => void;
+  className?: string;
+
+  // Editor Interactivity Props
+  selectedEntityId?: string | null;
+  onSelectEntity?: (id: string | null) => void;
+  onUpdateEntityPosition?: (id: string, x: number, y: number) => void;
+
+  selectedPlatformId?: string | null;
+  onSelectPlatform?: (id: string | null) => void;
+  onUpdatePlatformPosition?: (id: string, x: number, y: number) => void;
+
+  isPlayerSelected?: boolean;
+  onSelectPlayer?: (selected: boolean) => void;
+  onUpdatePlayerPosition?: (x: number, y: number) => void;
+
+  editorCameraX?: number;
+  onCameraChange?: (camX: number) => void;
+}
+
+export default function PlatformerEngine({
+  project,
+  mode = 'play',
+  guestName,
+  onExitTestMode,
+  className = '',
+  selectedEntityId = null,
+  onSelectEntity,
+  onUpdateEntityPosition,
+  selectedPlatformId = null,
+  onSelectPlatform,
+  onUpdatePlatformPosition,
+  isPlayerSelected = false,
+  onSelectPlayer,
+  onUpdatePlayerPosition,
+  editorCameraX,
+  onCameraChange
+}: PlatformerEngineProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Active interaction modal state
+  const [activeEntity, setActiveEntity] = useState<InteractiveEntity | null>(null);
+  const [isAudioMuted, setIsAudioMuted] = useState(false);
+  const [nearbyEntity, setNearbyEntity] = useState<InteractiveEntity | null>(null);
+
+  // RSVP Form internal state
+  const [rsvpName, setRsvpName] = useState(guestName || '');
+  const [rsvpStatus, setRsvpStatus] = useState<'hadir' | 'tidak_hadir' | 'ragu'>('hadir');
+  const [rsvpPax, setRsvpPax] = useState(1);
+  const [rsvpMessage, setRsvpMessage] = useState('');
+  const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
+
+  // Canvas cursor state in preview mode
+  const [canvasCursor, setCanvasCursor] = useState<'default' | 'grab' | 'grabbing' | 'move' | 'pointer'>('default');
+
+  // Image cache
+  const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
+
+  // Input states (only active in play/test mode)
+  const keysRef = useRef<{ left: boolean; right: boolean; jump: boolean; interact: boolean }>({
+    left: false,
+    right: false,
+    jump: false,
+    interact: false
+  });
+
+  // Camera X state for preview mode (synced with editorCameraX if provided)
+  const previewCamXRef = useRef<number>(editorCameraX || 0);
+
+  useEffect(() => {
+    if (editorCameraX !== undefined) {
+      previewCamXRef.current = editorCameraX;
+    }
+  }, [editorCameraX]);
+
+  // Initial player coordinates from config or sensible defaults
+  const initialPlayerX = project.player.startX ?? 100;
+  const initialPlayerY = project.player.startY ?? (project.world.groundY ? project.world.groundY - 64 : 396);
+
+  // Game state references
+  const gameStateRef = useRef({
+    player: {
+      x: initialPlayerX,
+      y: initialPlayerY,
+      vx: 0,
+      vy: 0,
+      width: 44,
+      height: 60,
+      isGrounded: false,
+      facing: 'right' as 'left' | 'right',
+      state: 'idle' as 'idle' | 'run',
+      frameIndex: 0,
+      frameTimeAccum: 0
+    },
+    cameraX: editorCameraX || 0,
+    lastTime: 0
+  });
+
+  // When project start position changes in preview mode, update player state
+  useEffect(() => {
+    if (mode === 'preview') {
+      gameStateRef.current.player.x = project.player.startX ?? 100;
+      gameStateRef.current.player.y = project.player.startY ?? (project.world.groundY ? project.world.groundY - 64 : 396);
+      gameStateRef.current.player.vx = 0;
+      gameStateRef.current.player.vy = 0;
+    }
+  }, [project.player.startX, project.player.startY, project.world.groundY, mode]);
+
+  // Dragging state for preview mode
+  const dragRef = useRef<{
+    active: boolean;
+    type: 'entity' | 'platform' | 'player' | 'pan';
+    id?: string;
+    startObjX: number;
+    startObjY: number;
+    mouseStartWorldX: number;
+    mouseStartWorldY: number;
+    clientStartX: number;
+    startCamX: number;
+  } | null>(null);
+
+  // Helper to load image with cache
+  const getImage = useCallback((src: string): HTMLImageElement | null => {
+    if (!src) return null;
+    let img = imageCacheRef.current.get(src);
+    if (!img) {
+      img = new Image();
+      img.src = src;
+      imageCacheRef.current.set(src, img);
+    }
+    return img.complete ? img : null;
+  }, []);
+
+  // Helper to render static sprite or multi-frame sequence
+  const renderSprite = useCallback((
+    ctx: CanvasRenderingContext2D,
+    sprite: SpriteAsset,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    dt: number,
+    flipX: boolean
+  ) => {
+    if (!sprite || !sprite.frames || sprite.frames.length === 0) return;
+
+    let frameSrc = sprite.frames[0];
+
+    if (sprite.type === 'sequence' && sprite.frames.length > 1) {
+      const fps = sprite.frameRate || 8;
+      const interval = 1000 / fps;
+      const totalFrames = sprite.frames.length;
+      const frameIdx = Math.floor(performance.now() / interval) % totalFrames;
+      frameSrc = sprite.frames[frameIdx];
+    }
+
+    const img = getImage(frameSrc);
+    if (!img) return;
+
+    ctx.save();
+    if (flipX) {
+      ctx.translate(x + w, y);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img, 0, 0, w, h);
+    } else {
+      ctx.drawImage(img, x, y, w, h);
+    }
+    ctx.restore();
+  }, [getImage]);
+
+  // Reset player position (for test mode)
+  const resetPlayer = () => {
+    gameStateRef.current.player.x = project.player.startX ?? 80;
+    gameStateRef.current.player.y = project.player.startY ?? (project.world.groundY ? project.world.groundY - 64 : 300);
+    gameStateRef.current.player.vx = 0;
+    gameStateRef.current.player.vy = 0;
+    gameStateRef.current.cameraX = 0;
+    setActiveEntity(null);
+  };
+
+  // Keyboard Event Listeners (only enabled in 'play' or 'test' mode)
+  useEffect(() => {
+    if (mode === 'preview') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+        return;
+      }
+
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') keysRef.current.left = true;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') keysRef.current.right = true;
+      if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') keysRef.current.jump = true;
+      if (e.code === 'KeyE' || e.code === 'Enter') {
+        keysRef.current.interact = true;
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+        return;
+      }
+
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') keysRef.current.left = false;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') keysRef.current.right = false;
+      if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') keysRef.current.jump = false;
+      if (e.code === 'KeyE' || e.code === 'Enter') keysRef.current.interact = false;
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [mode]);
+
+  // Main Game / Render Loop
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationFrameId: number;
+    gameStateRef.current.lastTime = performance.now();
+
+    const loop = (time: number) => {
+      const dt = Math.min((time - gameStateRef.current.lastTime) / 1000, 0.1);
+      gameStateRef.current.lastTime = time;
+
+      const { player } = gameStateRef.current;
+      const { world, player: playerConf, entities } = project;
+      const gravity = 28;
+      const groundY = world.groundY || 460;
+
+      // ==========================================
+      // 1. PHYSICS & CONTROLS (ONLY IN PLAY/TEST)
+      // ==========================================
+      if (mode !== 'preview') {
+        // Horizontal movement
+        if (!activeEntity) {
+          if (keysRef.current.left) {
+            player.vx = -playerConf.speed * 60;
+            player.facing = 'left';
+            player.state = 'run';
+          } else if (keysRef.current.right) {
+            player.vx = playerConf.speed * 60;
+            player.facing = 'right';
+            player.state = 'run';
+          } else {
+            player.vx = 0;
+            player.state = 'idle';
+          }
+
+          // Jumping
+          if (playerConf.canJump && keysRef.current.jump && player.isGrounded) {
+            player.vy = -playerConf.jumpForce * 38;
+            player.isGrounded = false;
+          }
+        } else {
+          player.vx = 0;
+          player.state = 'idle';
+        }
+
+        // Gravity & Vertical movement
+        player.vy += gravity * 40 * dt;
+        player.x += player.vx * dt;
+        player.y += player.vy * dt;
+
+        // Bound player within world
+        if (player.x < 10) player.x = 10;
+        if (player.x > world.worldWidth - player.width - 20) {
+          player.x = world.worldWidth - player.width - 20;
+        }
+
+        // Collision detection
+        player.isGrounded = false;
+
+        // Ground Collision
+        if (world.groundMode === 'endless') {
+          if (player.y + player.height >= groundY) {
+            player.y = groundY - player.height;
+            player.vy = 0;
+            player.isGrounded = true;
+          }
+        }
+
+        // Platforms Collision
+        if (world.platforms && world.platforms.length > 0) {
+          for (const plat of world.platforms) {
+            const prevY = player.y - player.vy * dt;
+            if (
+              player.x + player.width > plat.x &&
+              player.x < plat.x + plat.width &&
+              prevY + player.height <= plat.y + 10 &&
+              player.y + player.height >= plat.y &&
+              player.vy >= 0
+            ) {
+              player.y = plat.y - player.height;
+              player.vy = 0;
+              player.isGrounded = true;
+            }
+          }
+        }
+
+        // Camera following player
+        const targetCamX = player.x - canvas.width * 0.4;
+        gameStateRef.current.cameraX = Math.max(
+          0,
+          Math.min(targetCamX, world.worldWidth - canvas.width)
+        );
+
+        // Proximity detection
+        let closest: InteractiveEntity | null = null;
+        for (const ent of entities) {
+          if (!ent.hasInteraction) continue;
+          const dist = Math.hypot(
+            (player.x + player.width / 2) - (ent.x + ent.width / 2),
+            (player.y + player.height / 2) - (ent.y + ent.height / 2)
+          );
+          if (dist < 85) {
+            closest = ent;
+            break;
+          }
+        }
+        setNearbyEntity(closest);
+
+        if (keysRef.current.interact && closest && !activeEntity) {
+          setActiveEntity(closest);
+          keysRef.current.interact = false;
+        }
+      } else {
+        // ==========================================
+        // PREVIEW / EDITOR MODE: NO GRAVITY, STATIC
+        // ==========================================
+        player.vx = 0;
+        player.vy = 0;
+        player.state = 'idle';
+        player.isGrounded = true;
+        // Keep camera aligned with previewCamXRef
+        gameStateRef.current.cameraX = previewCamXRef.current;
+      }
+
+      const camX = gameStateRef.current.cameraX;
+
+      // ==========================================
+      // 2. RENDER CANVAS
+      // ==========================================
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // A. PARALLAX BACKGROUNDS
+      if (world.parallaxLayers && world.parallaxLayers.length > 0) {
+        for (const layer of world.parallaxLayers) {
+          const bgImg = getImage(layer.imageUrl);
+          if (bgImg && bgImg.width > 0) {
+            const layerSpeed = layer.speedRatio || 0.1;
+            const scrollOffset = (camX * layerSpeed) % canvas.width;
+            const yPos = layer.yOffset || 0;
+            const drawH = canvas.height;
+            const drawW = canvas.width;
+
+            ctx.drawImage(bgImg, -scrollOffset, yPos, drawW, drawH);
+            ctx.drawImage(bgImg, drawW - scrollOffset, yPos, drawW, drawH);
+          }
+        }
+      } else {
+        ctx.fillStyle = '#bae6fd';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      ctx.save();
+      // Apply Camera Translation
+      ctx.translate(-camX, 0);
+
+      // B. RENDER GROUND
+      if (world.groundMode === 'endless') {
+        // Grass top
+        ctx.fillStyle = '#22c55e';
+        ctx.fillRect(0, groundY, world.worldWidth, 16);
+        // Dirt under
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(0, groundY + 16, world.worldWidth, canvas.height - groundY - 16);
+
+        // Ground stone accents
+        ctx.fillStyle = '#92400e';
+        for (let gx = 40; gx < world.worldWidth; gx += 120) {
+          ctx.beginPath();
+          ctx.arc(gx, groundY + 28, 8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // C. RENDER FLOATING PLATFORMS (SUPPORTING IMAGES & TEXTURES)
+      if (world.platforms) {
+        for (const plat of world.platforms) {
+          if (plat.tileTextureUrl) {
+            const texImg = getImage(plat.tileTextureUrl);
+            if (texImg && texImg.complete && texImg.naturalWidth > 0) {
+              ctx.save();
+              // Repeat tile texture horizontally across platform width
+              const tileW = Math.min(texImg.naturalWidth, 48);
+              const tileH = plat.height;
+              for (let px = plat.x; px < plat.x + plat.width; px += tileW) {
+                const drawW = Math.min(tileW, plat.x + plat.width - px);
+                ctx.drawImage(
+                  texImg,
+                  0,
+                  0,
+                  (drawW / tileW) * texImg.naturalWidth,
+                  texImg.naturalHeight,
+                  px,
+                  plat.y,
+                  drawW,
+                  tileH
+                );
+              }
+              // Subtle border
+              ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+              ctx.lineWidth = 1.5;
+              ctx.strokeRect(plat.x, plat.y, plat.width, plat.height);
+              ctx.restore();
+            } else {
+              // Fallback solid color while loading texture
+              ctx.fillStyle = plat.tileColor || '#4ade80';
+              ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+            }
+          } else {
+            // Solid color with stylish border & highlight
+            ctx.fillStyle = plat.tileColor || '#4ade80';
+            ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+            ctx.strokeStyle = '#15803d';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(plat.x, plat.y, plat.width, plat.height);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.fillRect(plat.x, plat.y, plat.width, 4);
+          }
+
+          // In preview mode: outline if selected
+          if (mode === 'preview' && selectedPlatformId === plat.id) {
+            ctx.save();
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(plat.x - 3, plat.y - 3, plat.width + 6, plat.height + 6);
+
+            // Corner anchor nodes
+            ctx.fillStyle = '#38bdf8';
+            const corners = [
+              [plat.x - 5, plat.y - 5],
+              [plat.x + plat.width - 1, plat.y - 5],
+              [plat.x - 5, plat.y + plat.height - 1],
+              [plat.x + plat.width - 1, plat.y + plat.height - 1]
+            ];
+            corners.forEach(([cx, cy]) => {
+              ctx.fillRect(cx, cy, 6, 6);
+            });
+
+            // Dimension & position floating label
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+            ctx.fillRect(plat.x, plat.y - 22, 130, 18);
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(plat.x, plat.y - 22, 130, 18);
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 10px monospace';
+            ctx.fillText(`Pijakan: ${plat.width}x${plat.height}`, plat.x + 6, plat.y - 9);
+            ctx.restore();
+          }
+        }
+      }
+
+      // D. RENDER ENTITIES (NPC, Obstacles, Decorations)
+      for (const ent of entities) {
+        renderSprite(ctx, ent.sprite, ent.x, ent.y, ent.width, ent.height, dt, false);
+
+        // Proximity badge in play/test mode
+        if (mode !== 'preview' && ent.hasInteraction && nearbyEntity?.id === ent.id) {
+          ctx.save();
+          const bounce = Math.sin(time / 150) * 4;
+          ctx.fillStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.arc(ent.x + ent.width / 2, ent.y - 18 + bounce, 12, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 13px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('!', ent.x + ent.width / 2, ent.y - 18 + bounce);
+          ctx.restore();
+        }
+
+        // Selection outline in preview mode
+        if (mode === 'preview' && selectedEntityId === ent.id) {
+          ctx.save();
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(ent.x - 3, ent.y - 3, ent.width + 6, ent.height + 6);
+
+          // Corner handles
+          ctx.fillStyle = '#f59e0b';
+          const corners = [
+            [ent.x - 5, ent.y - 5],
+            [ent.x + ent.width - 1, ent.y - 5],
+            [ent.x - 5, ent.y + ent.height - 1],
+            [ent.x + ent.width - 1, ent.y + ent.height - 1]
+          ];
+          corners.forEach(([cx, cy]) => {
+            ctx.fillRect(cx, cy, 6, 6);
+          });
+
+          // Label
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+          ctx.fillRect(ent.x, ent.y - 22, 140, 18);
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(ent.x, ent.y - 22, 140, 18);
+          ctx.fillStyle = '#f59e0b';
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText(`Objek: (${ent.x}, ${ent.y})`, ent.x + 6, ent.y - 9);
+          ctx.restore();
+        }
+      }
+
+      // E. RENDER PLAYER
+      const currentSprite: SpriteAsset =
+        player.state === 'run' ? playerConf.runSprite : playerConf.idleSprite;
+
+      renderSprite(
+        ctx,
+        currentSprite,
+        player.x,
+        player.y,
+        player.width,
+        player.height,
+        dt,
+        player.facing === 'left'
+      );
+
+      // Selection outline for Player in preview mode
+      if (mode === 'preview' && isPlayerSelected) {
+        ctx.save();
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(player.x - 3, player.y - 3, player.width + 6, player.height + 6);
+
+        // Corner handles
+        ctx.fillStyle = '#c084fc';
+        const corners = [
+          [player.x - 5, player.y - 5],
+          [player.x + player.width - 1, player.y - 5],
+          [player.x - 5, player.y + player.height - 1],
+          [player.x + player.width - 1, player.y + player.height - 1]
+        ];
+        corners.forEach(([cx, cy]) => {
+          ctx.fillRect(cx, cy, 6, 6);
+        });
+
+        // Label
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.fillRect(player.x - 10, player.y - 24, 160, 20);
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(player.x - 10, player.y - 24, 160, 20);
+        ctx.fillStyle = '#c084fc';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText(`Karakter Start (${player.x}, ${player.y})`, player.x - 4, player.y - 10);
+        ctx.restore();
+      }
+
+      ctx.restore();
+
+      animationFrameId = requestAnimationFrame(loop);
+    };
+
+    animationFrameId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [
+    project,
+    activeEntity,
+    getImage,
+    renderSprite,
+    mode,
+    selectedEntityId,
+    selectedPlatformId,
+    isPlayerSelected,
+    nearbyEntity
+  ]);
+
+  // ========================================================
+  // PREVIEW / EDITOR MOUSE INTERACTIONS (DRAG & SELECT & PAN)
+  // ========================================================
+  const getCanvasWorldCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { worldX: 0, worldY: 0, canvasX: 0, canvasY: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const canvasX = (e.clientX - rect.left) * scaleX;
+    const canvasY = (e.clientY - rect.top) * scaleY;
+    const worldX = Math.round(canvasX + previewCamXRef.current);
+    const worldY = Math.round(canvasY);
+    return { worldX, worldY, canvasX, canvasY };
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (mode !== 'preview') return;
+    const { worldX, worldY } = getCanvasWorldCoords(e);
+    const { entities, world, player } = project;
+    const playerX = player.startX ?? 100;
+    const playerY = player.startY ?? (world.groundY ? world.groundY - 64 : 396);
+
+    // 1. Check Entities (in reverse order to select topmost)
+    for (let i = entities.length - 1; i >= 0; i--) {
+      const ent = entities[i];
+      if (
+        worldX >= ent.x &&
+        worldX <= ent.x + ent.width &&
+        worldY >= ent.y &&
+        worldY <= ent.y + ent.height
+      ) {
+        onSelectEntity?.(ent.id);
+        onSelectPlatform?.(null);
+        onSelectPlayer?.(false);
+
+        dragRef.current = {
+          active: true,
+          type: 'entity',
+          id: ent.id,
+          startObjX: ent.x,
+          startObjY: ent.y,
+          mouseStartWorldX: worldX,
+          mouseStartWorldY: worldY,
+          clientStartX: e.clientX,
+          startCamX: previewCamXRef.current
+        };
+        setCanvasCursor('move');
+        return;
+      }
+    }
+
+    // 2. Check Player
+    if (
+      worldX >= playerX &&
+      worldX <= playerX + 44 &&
+      worldY >= playerY &&
+      worldY <= playerY + 60
+    ) {
+      onSelectPlayer?.(true);
+      onSelectEntity?.(null);
+      onSelectPlatform?.(null);
+
+      dragRef.current = {
+        active: true,
+        type: 'player',
+        startObjX: playerX,
+        startObjY: playerY,
+        mouseStartWorldX: worldX,
+        mouseStartWorldY: worldY,
+        clientStartX: e.clientX,
+        startCamX: previewCamXRef.current
+      };
+      setCanvasCursor('move');
+      return;
+    }
+
+    // 3. Check Platforms
+    if (world.platforms) {
+      for (let i = world.platforms.length - 1; i >= 0; i--) {
+        const plat = world.platforms[i];
+        if (
+          worldX >= plat.x &&
+          worldX <= plat.x + plat.width &&
+          worldY >= plat.y &&
+          worldY <= plat.y + plat.height
+        ) {
+          onSelectPlatform?.(plat.id);
+          onSelectEntity?.(null);
+          onSelectPlayer?.(false);
+
+          dragRef.current = {
+            active: true,
+            type: 'platform',
+            id: plat.id,
+            startObjX: plat.x,
+            startObjY: plat.y,
+            mouseStartWorldX: worldX,
+            mouseStartWorldY: worldY,
+            clientStartX: e.clientX,
+            startCamX: previewCamXRef.current
+          };
+          setCanvasCursor('move');
+          return;
+        }
+      }
+    }
+
+    // 4. Clicked on Empty Area -> Start Camera Pan
+    dragRef.current = {
+      active: true,
+      type: 'pan',
+      startObjX: 0,
+      startObjY: 0,
+      mouseStartWorldX: worldX,
+      mouseStartWorldY: worldY,
+      clientStartX: e.clientX,
+      startCamX: previewCamXRef.current
+    };
+    setCanvasCursor('grabbing');
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (mode !== 'preview') return;
+    const { worldX, worldY } = getCanvasWorldCoords(e);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    if (dragRef.current && dragRef.current.active) {
+      const drag = dragRef.current;
+
+      if (drag.type === 'entity' && drag.id) {
+        const deltaX = worldX - drag.mouseStartWorldX;
+        const deltaY = worldY - drag.mouseStartWorldY;
+        const newX = Math.max(0, Math.min(project.world.worldWidth - 50, drag.startObjX + deltaX));
+        const newY = Math.max(0, Math.min(canvas.height - 50, drag.startObjY + deltaY));
+        onUpdateEntityPosition?.(drag.id, Math.round(newX), Math.round(newY));
+      } else if (drag.type === 'platform' && drag.id) {
+        const deltaX = worldX - drag.mouseStartWorldX;
+        const deltaY = worldY - drag.mouseStartWorldY;
+        const plat = project.world.platforms.find(p => p.id === drag.id);
+        const pWidth = plat ? plat.width : 100;
+        const pHeight = plat ? plat.height : 24;
+        const newX = Math.max(0, Math.min(project.world.worldWidth - pWidth, drag.startObjX + deltaX));
+        const newY = Math.max(0, Math.min(canvas.height - pHeight, drag.startObjY + deltaY));
+        onUpdatePlatformPosition?.(drag.id, Math.round(newX), Math.round(newY));
+      } else if (drag.type === 'player') {
+        const deltaX = worldX - drag.mouseStartWorldX;
+        const deltaY = worldY - drag.mouseStartWorldY;
+        const newX = Math.max(10, Math.min(project.world.worldWidth - 60, drag.startObjX + deltaX));
+        const newY = Math.max(10, Math.min(canvas.height - 70, drag.startObjY + deltaY));
+        onUpdatePlayerPosition?.(Math.round(newX), Math.round(newY));
+      } else if (drag.type === 'pan') {
+        const deltaClientX = e.clientX - drag.clientStartX;
+        const maxCam = Math.max(0, project.world.worldWidth - canvas.width);
+        const newCamX = Math.max(0, Math.min(maxCam, Math.round(drag.startCamX - deltaClientX)));
+        previewCamXRef.current = newCamX;
+        gameStateRef.current.cameraX = newCamX;
+        onCameraChange?.(newCamX);
+      }
+      return;
+    }
+
+    // Hover detection to update cursor
+    const { entities, world, player } = project;
+    const playerX = player.startX ?? 100;
+    const playerY = player.startY ?? (world.groundY ? world.groundY - 64 : 396);
+
+    let isOverItem = false;
+    // Over entity?
+    for (const ent of entities) {
+      if (worldX >= ent.x && worldX <= ent.x + ent.width && worldY >= ent.y && worldY <= ent.y + ent.height) {
+        isOverItem = true;
+        break;
+      }
+    }
+    // Over player?
+    if (!isOverItem && worldX >= playerX && worldX <= playerX + 44 && worldY >= playerY && worldY <= playerY + 60) {
+      isOverItem = true;
+    }
+    // Over platform?
+    if (!isOverItem && world.platforms) {
+      for (const plat of world.platforms) {
+        if (worldX >= plat.x && worldX <= plat.x + plat.width && worldY >= plat.y && worldY <= plat.y + plat.height) {
+          isOverItem = true;
+          break;
+        }
+      }
+    }
+
+    setCanvasCursor(isOverItem ? 'pointer' : 'grab');
+  };
+
+  const handleMouseUp = () => {
+    if (dragRef.current) {
+      dragRef.current = null;
+    }
+    setCanvasCursor('default');
+  };
+
+  // Wheel panning in preview mode
+  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+    if (mode !== 'preview') return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const delta = Math.abs(e.deltaX) > 0 ? e.deltaX : e.deltaY;
+    const maxCam = Math.max(0, project.world.worldWidth - canvas.width);
+    const newCamX = Math.max(0, Math.min(maxCam, Math.round(previewCamXRef.current + delta * 0.8)));
+    previewCamXRef.current = newCamX;
+    gameStateRef.current.cameraX = newCamX;
+    onCameraChange?.(newCamX);
+  };
+
+  // Trigger RSVP Submission
+  const handleRSVPSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rsvpName.trim()) return;
+
+    const ok = await addRSVPToProject(project.slug, {
+      guestName: rsvpName,
+      attendance: rsvpStatus,
+      pax: Number(rsvpPax),
+      message: rsvpMessage
+    });
+    if (!ok) {
+      alert('Gagal mengirim RSVP. Silakan coba lagi.');
+      return;
+    }
+
+    setRsvpSubmitted(true);
+    confetti({
+      particleCount: 120,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+  };
+
+  return (
+    <div className={`relative flex flex-col items-center justify-center bg-slate-950 select-none overflow-hidden ${className}`}>
+      {/* Canvas Viewport */}
+      <canvas
+        ref={canvasRef}
+        width={800}
+        height={500}
+        style={{ cursor: mode === 'preview' ? canvasCursor : 'default' }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
+        className="w-full h-auto max-w-4xl aspect-[16/10] bg-sky-200 rounded-xl shadow-2xl border border-slate-800"
+      />
+
+      {/* Top Overlay Controls */}
+      <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+        {/* Title or Guest Greeting */}
+        <div className="pointer-events-auto bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-700/60 shadow-lg text-xs md:text-sm text-slate-100 flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="font-semibold">{project.title}</span>
+          {guestName && (
+            <span className="text-amber-300 font-medium border-l border-slate-700 pl-2">
+              Tamu: {guestName}
+            </span>
+          )}
+        </div>
+
+        {/* Action buttons (Mute, Reset, Exit Test) */}
+        <div className="pointer-events-auto flex items-center gap-2">
+          {mode === 'test' && (
+            <button
+              onClick={resetPlayer}
+              className="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow flex items-center gap-1.5 transition"
+              title="Reset Posisi Karakter"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset Pos
+            </button>
+          )}
+
+          {mode === 'test' && onExitTestMode && (
+            <button
+              onClick={onExitTestMode}
+              className="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow flex items-center gap-1.5 transition"
+            >
+              <X className="w-3.5 h-3.5" />
+              Keluar Test
+            </button>
+          )}
+
+          <button
+            onClick={() => setIsAudioMuted(!isAudioMuted)}
+            className="p-2 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700 backdrop-blur shadow transition"
+            title={isAudioMuted ? 'Nyalakan Musik' : 'Matikan Musik'}
+          >
+            {isAudioMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Proximity Interaction Hint Pill in Play/Test mode */}
+      {mode !== 'preview' && nearbyEntity && !activeEntity && (
+        <div className="absolute top-16 animate-bounce bg-amber-500 text-slate-950 font-bold px-4 py-1.5 rounded-full shadow-xl border-2 border-white text-xs md:text-sm flex items-center gap-2 z-10">
+          <MessageCircle className="w-4 h-4" />
+          <span>Tekan [E] atau tombol Action untuk bicara dengan {nearbyEntity.name}</span>
+        </div>
+      )}
+
+      {/* Mobile Virtual Controls (Only in play/test mode) */}
+      {mode !== 'preview' && (
+        <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between pointer-events-none md:hidden z-10">
+          {/* D-Pad Horizontal */}
+          <div className="pointer-events-auto flex gap-3">
+            <button
+              onTouchStart={() => (keysRef.current.left = true)}
+              onTouchEnd={() => (keysRef.current.left = false)}
+              onMouseDown={() => (keysRef.current.left = true)}
+              onMouseUp={() => (keysRef.current.left = false)}
+              className="w-14 h-14 rounded-2xl bg-slate-900/80 active:bg-amber-500 text-white active:text-slate-950 text-xl font-bold flex items-center justify-center border-2 border-slate-600 backdrop-blur shadow-xl select-none"
+            >
+              ◀
+            </button>
+            <button
+              onTouchStart={() => (keysRef.current.right = true)}
+              onTouchEnd={() => (keysRef.current.right = false)}
+              onMouseDown={() => (keysRef.current.right = true)}
+              onMouseUp={() => (keysRef.current.right = false)}
+              className="w-14 h-14 rounded-2xl bg-slate-900/80 active:bg-amber-500 text-white active:text-slate-950 text-xl font-bold flex items-center justify-center border-2 border-slate-600 backdrop-blur shadow-xl select-none"
+            >
+              ▶
+            </button>
+          </div>
+
+          {/* Action Buttons (Jump & Interact) */}
+          <div className="pointer-events-auto flex gap-3">
+            {nearbyEntity && (
+              <button
+                onClick={() => setActiveEntity(nearbyEntity)}
+                className="w-14 h-14 rounded-2xl bg-amber-500 active:bg-amber-400 text-slate-950 font-bold flex flex-col items-center justify-center border-2 border-white shadow-xl animate-pulse select-none text-xs"
+              >
+                <MessageCircle className="w-5 h-5 mb-0.5" />
+                Chat
+              </button>
+            )}
+
+            {project.player.canJump && (
+              <button
+                onTouchStart={() => (keysRef.current.jump = true)}
+                onTouchEnd={() => (keysRef.current.jump = false)}
+                onMouseDown={() => (keysRef.current.jump = true)}
+                onMouseUp={() => (keysRef.current.jump = false)}
+                className="w-14 h-14 rounded-2xl bg-emerald-600 active:bg-emerald-400 text-white active:text-slate-950 text-sm font-bold flex items-center justify-center border-2 border-emerald-400 backdrop-blur shadow-xl select-none"
+              >
+                Lompat
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Helper Bar for Play/Test Mode */}
+      {mode !== 'preview' && (
+        <div className="hidden md:flex items-center gap-4 text-xs text-slate-400 mt-2">
+          <span>Gunakan tombol <b>[A] / [D]</b> atau <b>Panah</b> untuk bergerak</span>
+          {project.player.canJump && <span>• <b>[Spasi] / [W]</b> untuk Melompat</span>}
+          <span>• <b>[E]</b> untuk Berinteraksi dengan Objek / NPC</span>
+        </div>
+      )}
+
+      {/* POPUP MODAL DIALOGS */}
+      {activeEntity && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border border-amber-500/40 rounded-2xl p-6 shadow-2xl text-slate-100">
+            <button
+              onClick={() => {
+                setActiveEntity(null);
+                setRsvpSubmitted(false);
+              }}
+              className="absolute top-4 right-4 p-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4 border-b border-slate-800 pb-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                <MessageCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-amber-300">
+                  {activeEntity.interaction?.title || activeEntity.name}
+                </h3>
+                <p className="text-xs text-slate-400">Interaksi dengan {activeEntity.name}</p>
+              </div>
+            </div>
+
+            {/* 1. INFO TYPE */}
+            {activeEntity.interaction?.type === 'info' && (
+              <div className="space-y-4">
+                <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/60 text-slate-200 whitespace-pre-line leading-relaxed text-sm">
+                  {activeEntity.interaction.content}
+                </div>
+                {activeEntity.interaction.actionUrl && (
+                  <a
+                    href={activeEntity.interaction.actionUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition shadow-lg text-sm"
+                  >
+                    <span>{activeEntity.interaction.actionButtonText || 'Buka Tautan'}</span>
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* 2. IMAGE LIGHTBOX */}
+            {activeEntity.interaction?.type === 'image' && (
+              <div className="space-y-4">
+                {activeEntity.interaction.mediaUrl ? (
+                  <div className="overflow-hidden rounded-xl border border-slate-700">
+                    <img
+                      src={activeEntity.interaction.mediaUrl}
+                      alt={activeEntity.interaction.title || 'Foto Galeri'}
+                      className="w-full h-auto max-h-72 object-cover hover:scale-105 transition duration-300"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-48 bg-slate-800 flex items-center justify-center rounded-xl text-slate-400">
+                    Tidak ada gambar
+                  </div>
+                )}
+                {activeEntity.interaction.content && (
+                  <p className="text-sm text-slate-300 italic text-center">
+                    &ldquo;{activeEntity.interaction.content}&rdquo;
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* 3. VIDEO PLAYER */}
+            {activeEntity.interaction?.type === 'video' && (
+              <div className="space-y-4">
+                {activeEntity.interaction.mediaUrl ? (
+                  <div className="aspect-video w-full rounded-xl overflow-hidden border border-slate-700 bg-black">
+                    {activeEntity.interaction.mediaUrl.includes('youtube') ||
+                    activeEntity.interaction.mediaUrl.includes('youtu.be') ? (
+                      <iframe
+                        src={activeEntity.interaction.mediaUrl}
+                        title="Video Player"
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <video
+                        src={activeEntity.interaction.mediaUrl}
+                        controls
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-48 bg-slate-800 flex items-center justify-center rounded-xl text-slate-400">
+                    Tidak ada URL video
+                  </div>
+                )}
+                {activeEntity.interaction.content && (
+                  <p className="text-sm text-slate-300 leading-relaxed">
+                    {activeEntity.interaction.content}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* 4. RSVP FORM */}
+            {activeEntity.interaction?.type === 'rsvp' && (
+              <div>
+                {rsvpSubmitted ? (
+                  <div className="text-center py-6 space-y-3">
+                    <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500 flex items-center justify-center mx-auto text-2xl font-bold">
+                      ✓
+                    </div>
+                    <h4 className="text-lg font-bold text-emerald-400">
+                      Terima Kasih, {rsvpName}!
+                    </h4>
+                    <p className="text-sm text-slate-300">
+                      Konfirmasi kehadiran Anda telah berhasil tersimpan. Sampai jumpa di hari bahagia kami!
+                    </p>
+                    <button
+                      onClick={() => setActiveEntity(null)}
+                      className="mt-4 px-6 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm transition"
+                    >
+                      Lanjut Menjelajahi Game
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleRSVPSubmit} className="space-y-3.5">
+                    {activeEntity.interaction.content && (
+                      <p className="text-xs text-slate-300 leading-relaxed bg-slate-800/40 p-3 rounded-xl border border-slate-800">
+                        {activeEntity.interaction.content}
+                      </p>
+                    )}
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                        Nama Lengkap
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={rsvpName}
+                        onChange={e => setRsvpName(e.target.value)}
+                        placeholder="Masukkan nama Anda..."
+                        className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1">
+                          Konfirmasi Kehadiran
+                        </label>
+                        <select
+                          value={rsvpStatus}
+                          onChange={e => setRsvpStatus(e.target.value as 'hadir' | 'tidak_hadir' | 'ragu')}
+                          className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400"
+                        >
+                          <option value="hadir">Pasti Hadir</option>
+                          <option value="tidak_hadir">Maaf Tidak Bisa Hadir</option>
+                          <option value="ragu">Masih Ragu</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1">
+                          Jumlah Tamu (Pax)
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={5}
+                          value={rsvpPax}
+                          onChange={e => setRsvpPax(parseInt(e.target.value) || 1)}
+                          className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                        Doa & Ucapan Selamat
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={rsvpMessage}
+                        onChange={e => setRsvpMessage(e.target.value)}
+                        placeholder="Tuliskan pesan doa & restu untuk yang berhajat..."
+                        className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400 resize-none"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition shadow-lg text-sm flex items-center justify-center gap-2"
+                    >
+                      <Send className="w-4 h-4" />
+                      Kirim Konfirmasi Kehadiran
+                    </button>
+                  </form>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  name         String    @db.VarChar(100)
+  email        String    @unique @db.VarChar(191)
+  passwordHash String    @db.VarChar(255)
+  projects     Project[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum Visibility {
+  PRIVATE
+  PUBLIC
+}
+
+model Project {
+  id                Int        @id @default(autoincrement())
+  slug              String     @unique @db.VarChar(100)
+  title             String     @db.VarChar(255)
+  subtitle          String?    @db.VarChar(255)
+  /// Allows the simplified customization form (/template/:slug)
+  isTemplateEnabled Boolean    @default(true)
+  /// Published as a reusable starting point that can be duplicated
+  isTemplate        Boolean    @default(false)
+  /// Template visibility: PRIVATE (owner only) or PUBLIC (everyone)
+  visibility        Visibility @default(PRIVATE)
+  /// player, world & entities (PlatformerProject without rsvps)
+  data              Json
+  ownerId           Int
+  owner             User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  rsvps             Rsvp[]
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@index([ownerId])
+  @@index([isTemplate, visibility])
+}
+
+enum Attendance {
+  hadir
+  tidak_hadir
+  ragu
+}
+
+model Rsvp {
+  id         Int        @id @default(autoincrement())
+  projectId  Int
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  guestName  String     @db.VarChar(255)
+  attendance Attendance
+  pax        Int        @default(1)
+  message    String     @db.Text
+  createdAt  DateTime   @default(now())
+
+  @@index([projectId])
+}
