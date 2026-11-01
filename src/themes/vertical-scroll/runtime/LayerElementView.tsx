@@ -4,11 +4,73 @@ import React, { useEffect, useState } from 'react';
 import {
   PageLayerElement,
   PageSection,
+  PageSectionBackground,
   VerticalScrollProject
 } from '@/types/verticalScroll';
 import { ChevronDown } from 'lucide-react';
 
 export const DEFAULT_STAGE_WIDTH = 800;
+
+export const DEFAULT_GLOBAL_BACKGROUND: PageSectionBackground = {
+  type: 'gradient',
+  value: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+  overlayOpacity: 0,
+  backgroundPosition: 'center'
+};
+
+export const DEFAULT_OUTER_BACKDROP: PageSectionBackground = {
+  type: 'gradient',
+  value: 'linear-gradient(135deg, #EFF4F0 0%, #E2EDE6 50%, #D2E5DA 100%)',
+  overlayOpacity: 0,
+  backgroundPosition: 'center'
+};
+
+export function getGlobalBackground(project: VerticalScrollProject): PageSectionBackground {
+  return project.globalTheme?.globalBackground || DEFAULT_GLOBAL_BACKGROUND;
+}
+
+export function getOuterBackdrop(project: VerticalScrollProject): PageSectionBackground {
+  return project.globalTheme?.outerBackdrop || DEFAULT_OUTER_BACKDROP;
+}
+
+export function getEffectivePageBackground(
+  page: PageSection,
+  project: VerticalScrollProject
+): PageSectionBackground {
+  if (page.useGlobalBackground) {
+    return getGlobalBackground(project);
+  }
+  return page.background;
+}
+
+export function buildBackgroundCSS(bg: PageSectionBackground): React.CSSProperties {
+  const pos =
+    bg.backgroundPosition === 'left'
+      ? 'left center'
+      : bg.backgroundPosition === 'right'
+      ? 'right center'
+      : 'center center';
+
+  if (bg.type === 'color') {
+    return {
+      backgroundColor: bg.value || '#ffffff'
+    };
+  }
+
+  if (bg.type === 'gradient') {
+    return {
+      backgroundColor: '#ffffff',
+      backgroundImage: bg.value
+    };
+  }
+
+  return {
+    backgroundColor: '#0f172a',
+    backgroundImage: bg.value ? `url(${bg.value})` : undefined,
+    backgroundSize: 'cover',
+    backgroundPosition: pos
+  };
+}
 
 export function getStageWidth(project: VerticalScrollProject): number {
   const w = project.globalTheme?.stageWidth;

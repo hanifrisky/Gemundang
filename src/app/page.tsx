@@ -1,918 +1,620 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   Gamepad2,
   Sparkles,
-  Plus,
   ArrowRight,
-  Eye,
-  Edit3,
-  Sliders,
-  CheckCircle2,
-  AlertCircle,
-  Copy,
-  Check,
-  Play,
-  LogIn,
-  LogOut,
-  UserPlus,
-  Globe,
-  Lock,
-  LayoutTemplate,
-  Trash2,
-  X,
-  Loader2,
-  FolderKanban
+  Heart,
+  Trophy,
+  Share2,
+  Users,
+  Star,
+  ChevronDown,
+  Music2,
+  MessageCircle,
+  Play
 } from 'lucide-react';
-import {
-  getMyProjects,
-  getTemplates,
-  createNewProject,
-  isSlugAvailable,
-  updateTemplateSettings,
-  deleteProject,
-  type ProjectSummary,
-  type TemplateVisibility
-} from '@/lib/projectStorage';
-import { getCurrentUser, logoutUser, type CurrentUser } from '@/lib/authActions';
-import { isValidSlug } from '@/lib/defaultProject';
-import { GameThemeType } from '@/types/base';
-import { ALL_THEMES, getThemeDefinition } from '@/themes/registry';
 
-const PAGE_SIZE = 6;
+export default function LandingPage() {
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-export default function HomePage() {
-  const router = useRouter();
-  const [user, setUser] = useState<CurrentUser | null>(null);
-  const [authLoaded, setAuthLoaded] = useState(false);
-
-  // Tab State: 'projects' vs 'templates'
-  const [activeTab, setActiveTab] = useState<'projects' | 'templates'>('projects');
-
-  // Lazy Loaded Projects State
-  const [projectsState, setProjectsState] = useState<{
-    items: ProjectSummary[];
-    page: number;
-    total: number;
-    hasMore: boolean;
-    loading: boolean;
-    loaded: boolean;
-  }>({
-    items: [],
-    page: 1,
-    total: 0,
-    hasMore: false,
-    loading: false,
-    loaded: false
-  });
-
-  // Lazy Loaded Templates State
-  const [templatesState, setTemplatesState] = useState<{
-    items: ProjectSummary[];
-    page: number;
-    total: number;
-    hasMore: boolean;
-    loading: boolean;
-    loaded: boolean;
-  }>({
-    items: [],
-    page: 1,
-    total: 0,
-    hasMore: false,
-    loading: false,
-    loaded: false
-  });
-
-  // Create Project Form State
-  const [newTitle, setNewTitle] = useState('');
-  const [newSlug, setNewSlug] = useState('');
-  const [selectedTheme, setSelectedTheme] = useState<GameThemeType>('platformer');
-  const [isTemplateEnabled, setIsTemplateEnabled] = useState(true);
-  const [publishAsTemplate, setPublishAsTemplate] = useState(false);
-  const [newVisibility, setNewVisibility] = useState<TemplateVisibility>('PRIVATE');
-  const [fromTemplate, setFromTemplate] = useState<ProjectSummary | null>(null);
-  const [slugStatus, setSlugStatus] = useState<'idle' | 'valid' | 'invalid' | 'taken'>('idle');
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
-
-  // Fetch Projects (Lazy)
-  const loadProjects = useCallback(async (page: number, append = false) => {
-    setProjectsState(prev => ({ ...prev, loading: true }));
-    try {
-      const res = await getMyProjects({ page, limit: PAGE_SIZE });
-      setProjectsState(prev => ({
-        items: append ? [...prev.items, ...res.items] : res.items,
-        page: res.page,
-        total: res.total,
-        hasMore: res.hasMore,
-        loading: false,
-        loaded: true
-      }));
-    } catch (err) {
-      console.error('Gagal memuat projek:', err);
-      setProjectsState(prev => ({ ...prev, loading: false, loaded: true }));
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
     }
-  }, []);
-
-  // Fetch Templates (Lazy)
-  const loadTemplates = useCallback(async (page: number, append = false) => {
-    setTemplatesState(prev => ({ ...prev, loading: true }));
-    try {
-      const res = await getTemplates({ page, limit: PAGE_SIZE });
-      setTemplatesState(prev => ({
-        items: append ? [...prev.items, ...res.items] : res.items,
-        page: res.page,
-        total: res.total,
-        hasMore: res.hasMore,
-        loading: false,
-        loaded: true
-      }));
-    } catch (err) {
-      console.error('Gagal memuat template:', err);
-      setTemplatesState(prev => ({ ...prev, loading: false, loaded: true }));
-    }
-  }, []);
-
-  // Initial Auth Check
-  useEffect(() => {
-    getCurrentUser()
-      .then((u) => {
-        setUser(u);
-        setAuthLoaded(true);
-        if (u) {
-          setActiveTab('projects');
-          loadProjects(1, false);
-        } else {
-          setActiveTab('templates');
-          loadTemplates(1, false);
-        }
-      })
-      .catch((err) => {
-        console.error('Gagal memuat sesi user:', err);
-        setAuthLoaded(true);
-        setActiveTab('templates');
-        loadTemplates(1, false);
-      });
-  }, [loadProjects, loadTemplates]);
-
-  // Lazy load on Tab Switch
-  const handleTabChange = (tab: 'projects' | 'templates') => {
-    setActiveTab(tab);
-    if (tab === 'projects' && !projectsState.loaded && user) {
-      loadProjects(1, false);
-    } else if (tab === 'templates' && !templatesState.loaded) {
-      loadTemplates(1, false);
-    }
-  };
-
-  const handleLogout = async () => {
-    await logoutUser();
-    window.location.href = '/';
-  };
-
-  // Handle Slug Auto-generation or custom input check
-  const handleTitleChange = (val: string) => {
-    setNewTitle(val);
-    if (!newSlug || newSlug === slugify(newTitle)) {
-      const generated = slugify(val);
-      setNewSlug(generated);
-      checkSlug(generated);
-    }
-  };
-
-  const slugify = (text: string) => {
-    return text
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  };
-
-  const checkSlug = async (s: string) => {
-    if (!s || s.trim().length < 3) {
-      setSlugStatus('idle');
-      return;
-    }
-    if (!isValidSlug(s)) {
-      setSlugStatus('invalid');
-      return;
-    }
-    const available = await isSlugAvailable(s);
-    setSlugStatus(available ? 'valid' : 'taken');
-  };
-
-  const handleSlugInputChange = (val: string) => {
-    const sanitized = val.toLowerCase().replace(/[^a-z0-9-]/g, '');
-    setNewSlug(sanitized);
-    checkSlug(sanitized);
-  };
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (slugStatus !== 'valid') return;
-    setCreateError(null);
-
-    const res = await createNewProject({
-      slug: newSlug,
-      title: newTitle.trim() || 'Projek Undangan Baru',
-      theme_type: selectedTheme,
-      isTemplateEnabled,
-      isTemplate: publishAsTemplate,
-      visibility: newVisibility,
-      fromTemplateSlug: fromTemplate?.slug
-    });
-    if (!res.ok) {
-      setCreateError(res.error);
-      return;
-    }
-    router.push(`/editor/${res.slug}`);
-  };
-
-  const applyTemplate = (tpl: ProjectSummary) => {
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    setFromTemplate(tpl);
-    document.getElementById('create-project')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const changeTemplateSettings = async (proj: ProjectSummary, isTemplate: boolean, visibility: TemplateVisibility) => {
-    const ok = await updateTemplateSettings(proj.slug, { isTemplate, visibility });
-    if (!ok) {
-      alert('Gagal memperbarui pengaturan template.');
-      return;
-    }
-    // Refresh current project and templates
-    loadProjects(1, false);
-    if (templatesState.loaded) loadTemplates(1, false);
-  };
-
-  const handleDelete = async (proj: ProjectSummary) => {
-    if (!confirm(`Hapus projek "${proj.title}"? Semua RSVP juga akan terhapus.`)) return;
-    const ok = await deleteProject(proj.slug);
-    if (!ok) {
-      alert('Gagal menghapus projek.');
-      return;
-    }
-    loadProjects(1, false);
-    if (templatesState.loaded) loadTemplates(1, false);
-  };
-
-  const copyLink = (path: string, key: string) => {
-    const fullUrl = `${window.location.origin}${path}`;
-    navigator.clipboard.writeText(fullUrl);
-    setCopiedSlug(key);
-    setTimeout(() => setCopiedSlug(null), 2000);
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* TOP NAV */}
-      <nav className="border-b border-slate-800 bg-slate-950/80 px-3 sm:px-6 py-2.5 sm:py-3">
-        <div className="max-w-6xl mx-auto flex items-center justify-between text-sm">
-          <Link href="/" className="flex items-center gap-2 font-extrabold text-white">
-            <Gamepad2 className="w-5 h-5 text-amber-400" />
-            <span>Gem<span className="text-amber-400">Undang</span></span>
+    <div className="min-h-screen bg-[#FBFDFB] text-[#1c2e24] flex flex-col font-sans selection:bg-[#2d5a43]/15 selection:text-[#1c2e24]">
+      {/* 1. TOP NAVBAR */}
+      <nav className="sticky top-0 z-40 bg-[#FBFDFB]/95 backdrop-blur-md border-b border-[#e5eee8] transition-all">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+          {/* Logo GemUndang */}
+          <Link href="/" className="flex items-center gap-2 group">
+            <span className="text-xl">🌸</span>
+            <span className="font-serif font-bold text-2xl tracking-tight text-[#1c2e24]">
+              Gem<span className="text-[#2d5a43]">undang</span>
+            </span>
           </Link>
 
+          {/* Navigation Links */}
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-[#4b6354]">
+            <button
+              type="button"
+              onClick={() => scrollToSection('beranda')}
+              className="hover:text-[#1c2e24] transition cursor-pointer"
+            >
+              Beranda
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('tentang')}
+              className="hover:text-[#1c2e24] transition cursor-pointer"
+            >
+              Tentang
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('fitur')}
+              className="hover:text-[#1c2e24] transition cursor-pointer"
+            >
+              Fitur
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('testimoni')}
+              className="hover:text-[#1c2e24] transition cursor-pointer"
+            >
+              Testimoni
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('faq')}
+              className="hover:text-[#1c2e24] transition cursor-pointer"
+            >
+              FAQ
+            </button>
+          </div>
+
+          {/* CTA Button menuju Beranda User (Dashboard) */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {!authLoaded ? null : user ? (
-              <>
-                <span className="text-slate-400 text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
-                  Halo, <b className="text-slate-200">{user.name}</b>
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition"
-                >
-                  <LogOut className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Keluar</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <Link href="/login" className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition">
-                  <LogIn className="w-3.5 h-3.5" /> Masuk
-                </Link>
-                <Link href="/register" className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold flex items-center gap-1.5 transition">
-                  <UserPlus className="w-3.5 h-3.5" /> Daftar
-                </Link>
-              </>
-            )}
+            <Link
+              href="/dashboard"
+              className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-full bg-[#2d5a43] hover:bg-[#234734] text-white text-xs sm:text-sm font-medium flex items-center gap-1.5 shadow-sm hover:shadow transition"
+            >
+              <span>Buat Undangan</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </div>
       </nav>
 
-      {/* HERO HEADER */}
-      <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur py-6 sm:py-8 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-2 text-center md:text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold">
-              <Gamepad2 className="w-4 h-4" />
-              <span>Platformer Invitation Website Builder</span>
+      {/* 2. SECTION 1: HERO SECTION */}
+      {/* Background seamless sesuai warna tepi Hero.png: #f4f5f0 */}
+      <section
+        id="beranda"
+        className="relative pt-8 pb-12 md:pt-14 md:pb-20 overflow-hidden bg-[#f4f5f0]"
+      >
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+            {/* Left Content */}
+            <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
+              <span className="text-[11px] uppercase tracking-widest font-semibold text-[#5a7765]">
+                Undangan Pernikahan Berbasis Gamifikasi
+              </span>
+
+              <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#1c2e24] tracking-tight leading-[1.12]">
+                Gemundang
+              </h1>
+
+              <p className="font-serif italic text-lg sm:text-xl text-[#446050] max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                Undangan yang lebih dari sekadar mengundang, tapi juga mengajak bermain dan berbagi kebahagiaan.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5 pt-1">
+                <Link
+                  href="/dashboard"
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-[#2d5a43] hover:bg-[#234734] text-white font-medium text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 group"
+                >
+                  <span>Buat Undangan Sekarang</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition" />
+                </Link>
+
+                <Link
+                  href="/view/wedding-adventure?to=Tamu+Spesial"
+                  className="w-full sm:w-auto px-5 py-3.5 rounded-full bg-white/80 hover:bg-white text-[#2d5a43] font-medium text-sm transition flex items-center justify-center gap-2 border border-[#d2e5da]/80 shadow-xs"
+                >
+                  <Play className="w-4 h-4 fill-[#2d5a43]" />
+                  <span>Coba Demo Interaktif</span>
+                </Link>
+              </div>
+
+              {/* 3 Key Value Props */}
+              <div className="grid grid-cols-3 gap-3 pt-6 border-t border-[#d8ded4] max-w-lg mx-auto lg:mx-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-[#e8f3ed] flex items-center justify-center text-[#2d5a43] shrink-0">
+                    <Gamepad2 className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-[#1c2e24]">Kustomisasi</p>
+                    <p className="text-[10px] text-[#637d6e]">Mudah & Cepat</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-[#e8f3ed] flex items-center justify-center text-[#2d5a43] shrink-0">
+                    <Trophy className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-[#1c2e24]">Gamifikasi</p>
+                    <p className="text-[10px] text-[#637d6e]">Seru & Menghibur</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-[#e8f3ed] flex items-center justify-center text-[#2d5a43] shrink-0">
+                    <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-[#1c2e24]">Tamu Lebih</p>
+                    <p className="text-[10px] text-[#637d6e]">Terlibat Penuh</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
-              Gem<span className="text-amber-400">Undang</span>
-            </h1>
-            <p className="text-sm md:text-base text-slate-300 max-w-xl">
-              Bangun website undangan interaktif bergaya 2D platformer dengan kontrol ground, parallax background, NPC interaktif (video, foto, dialog, RSVP), dan sistem template dinamis.
+
+            {/* Right Hero Image (Gambar natural tanpa border / tanpa rounded / tanpa shadow card) */}
+            <div className="lg:col-span-6 relative flex justify-center items-center">
+              <div className="relative w-full max-w-lg">
+                {/* Level 1 Floating Gamification Badge */}
+                <div className="absolute top-4 right-4 sm:right-6 z-20 bg-white/95 backdrop-blur-md border border-[#e2ede6] rounded-2xl p-2.5 sm:p-3 shadow-lg max-w-[190px]">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="w-7 h-7 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 text-xs">
+                      👑
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-[#1c2e24] leading-tight">
+                        Lv. 1 Mulai Petualangan
+                      </p>
+                      <p className="text-[9px] text-[#637d6e]">Undanganmu!</p>
+                    </div>
+                  </div>
+                  <div className="w-full bg-[#e8efe9] rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-[#2d5a43] h-full rounded-full" style={{ width: '45%' }} />
+                  </div>
+                  <p className="text-[9px] text-right text-[#5a7765] mt-1 font-mono">2/10 Poin</p>
+                </div>
+
+                {/* Main Hero Image — natural, unstyled, seamless with #f4f5f0 */}
+                <Image
+                  src="/images/Hero.png"
+                  alt="GemUndang Hero Illustration"
+                  width={1536}
+                  height={1024}
+                  priority
+                  className="w-full h-auto object-contain block"
+                />
+
+                {/* Speech Bubble: "Ayo, ajak tamu bermain! ♡" */}
+                <div className="absolute bottom-10 right-4 sm:right-8 z-20 bg-white/95 backdrop-blur-sm border border-[#e2ede6] rounded-2xl px-3.5 py-2 shadow-md flex items-center gap-1.5 text-xs text-[#2d5a43] font-serif italic">
+                  <span>Ayo, ajak tamu bermain!</span>
+                  <span className="text-rose-500 font-sans not-italic">♡</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. SECTION 2: KENAPA GEMUNDANG? (FEATURE DIORAMA) */}
+      {/* Background seamless dioptimalkan dengan warna pastel diorama: #faf7f3 */}
+      <section
+        id="tentang"
+        className="py-16 md:py-24 bg-[#faf7f3] border-t border-[#ede7df] relative"
+      >
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center">
+            {/* Left Column: Diorama image — unstyled, natural aspect ratio, seamless with bg */}
+            <div className="lg:col-span-6 relative flex justify-center order-2 lg:order-1 items-center">
+              <div className="w-full max-w-md lg:max-w-lg">
+                <Image
+                  src="/images/diorama.png"
+                  alt="Diorama Pernikahan Gamifikasi"
+                  width={1089}
+                  height={1444}
+                  className="w-full h-auto object-contain block"
+                />
+              </div>
+            </div>
+
+            {/* Right Column: Narrative & Key Features */}
+            <div className="lg:col-span-6 space-y-6 order-1 lg:order-2" id="fitur">
+              <div>
+                <span className="text-[11px] uppercase tracking-widest font-semibold text-[#5a7765]">
+                  Kenapa Gemundang?
+                </span>
+                <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#1c2e24] mt-1.5 tracking-tight">
+                  Lebih dari Sekadar Undangan
+                </h2>
+                <p className="text-sm sm:text-base text-[#446050] mt-3 leading-relaxed">
+                  Kami menghadirkan pengalaman undangan pernikahan yang interaktif, menyenangkan, dan tak terlupakan bagi setiap tamu yang membukanya.
+                </p>
+              </div>
+
+              {/* 4 Feature Items */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-white/80 hover:bg-white border border-[#e6ded5] shadow-2xs hover:border-[#b8d6c3] transition">
+                  <div className="w-10 h-10 rounded-xl bg-[#e8f3ed] flex items-center justify-center text-[#2d5a43] shrink-0">
+                    <Gamepad2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#1c2e24]">Gamifikasi yang Seru</h3>
+                    <p className="text-xs text-[#526d5d] mt-0.5 leading-relaxed">
+                      Ajak tamu bermain, kumpulkan koin/poin ucapan, dan menangkan hadiah menarik.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-white/80 hover:bg-white border border-[#e6ded5] shadow-2xs hover:border-[#b8d6c3] transition">
+                  <div className="w-10 h-10 rounded-xl bg-[#e8f3ed] flex items-center justify-center text-[#2d5a43] shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#1c2e24]">Desain Elegan &amp; Personal</h3>
+                    <p className="text-xs text-[#526d5d] mt-0.5 leading-relaxed">
+                      Pilih dari berbagai template dan sesuaikan dengan tema pernikahanmu.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-white/80 hover:bg-white border border-[#e6ded5] shadow-2xs hover:border-[#b8d6c3] transition">
+                  <div className="w-10 h-10 rounded-xl bg-[#e8f3ed] flex items-center justify-center text-[#2d5a43] shrink-0">
+                    <Share2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#1c2e24]">Mudah Dibagikan</h3>
+                    <p className="text-xs text-[#526d5d] mt-0.5 leading-relaxed">
+                      Kirim undangan lewat link, WhatsApp, atau media sosial dengan sekali klik.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-white/80 hover:bg-white border border-[#e6ded5] shadow-2xs hover:border-[#b8d6c3] transition">
+                  <div className="w-10 h-10 rounded-xl bg-[#e8f3ed] flex items-center justify-center text-[#2d5a43] shrink-0">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#1c2e24]">Data Tamu Terkelola</h3>
+                    <p className="text-xs text-[#526d5d] mt-0.5 leading-relaxed">
+                      Pantau konfirmasi kehadiran dan interaksi tamu secara real-time.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. SECTION 3: SOCIAL PROOF & TESTIMONI DENGAN MOCKUP RSVP */}
+      {/* Background seamless sesuai tepi RSVP.png: #faf7f3 */}
+      <section
+        id="testimoni"
+        className="py-16 md:py-24 bg-[#faf7f3] border-t border-[#ede7df]"
+      >
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            {/* Left Column: Proof & Stats */}
+            <div className="lg:col-span-6 space-y-6">
+              <div>
+                <span className="text-[11px] uppercase tracking-widest font-semibold text-[#5a7765]">
+                  Dipercaya oleh Banyak Pasangan
+                </span>
+                <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#1c2e24] mt-1.5 tracking-tight">
+                  Ribuan Undangan Telah Dibuat
+                </h2>
+                <p className="text-sm sm:text-base text-[#446050] mt-3 leading-relaxed">
+                  Dari berbagai daerah, Gemundang telah membantu banyak pasangan menciptakan undangan pernikahan yang unik, interaktif, dan penuh makna.
+                </p>
+              </div>
+
+              {/* Stat Counters */}
+              <div className="grid grid-cols-3 gap-4 pt-2">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-[#2d5a43]">
+                    <Users className="w-4 h-4" />
+                    <span className="text-xl sm:text-2xl font-bold font-serif">10K+</span>
+                  </div>
+                  <p className="text-xs text-[#5a7765]">Pasangan Bahagia</p>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-amber-500">
+                    <Star className="w-4 h-4 fill-amber-500" />
+                    <span className="text-xl sm:text-2xl font-bold font-serif">4.9/5</span>
+                  </div>
+                  <p className="text-xs text-[#5a7765]">Rating Pengguna</p>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-rose-500">
+                    <Heart className="w-4 h-4 fill-rose-500" />
+                    <span className="text-xl sm:text-2xl font-bold font-serif">100K+</span>
+                  </div>
+                  <p className="text-xs text-[#5a7765]">Tamu Terlibat</p>
+                </div>
+              </div>
+
+              {/* Couple Testimonial Card */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/80 border border-[#e6ded5] space-y-3">
+                <p className="text-xs sm:text-sm text-[#354f40] italic leading-relaxed font-serif">
+                  &ldquo;Gemundang bikin persiapan pernikahan kami jadi lebih seru! Tamu-tamu juga sangat antusias karena ada gamifikasinya. Desainnya juga cantik banget dan sesuai dengan tema kami.&rdquo;
+                </p>
+                <div className="flex items-center gap-3 pt-1">
+                  <div className="w-9 h-9 rounded-full bg-[#d0e5d8] border border-[#b4d2bf] flex items-center justify-center text-sm font-bold text-[#2d5a43]">
+                    R&amp;D
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-[#1c2e24]">Rara &amp; Dimas</p>
+                    <p className="text-[10px] text-[#637d6e]">Pengguna Gemundang</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: RSVP Artwork — unstyled, seamless with #faf7f3 */}
+            <div className="lg:col-span-6 relative flex justify-center items-center">
+              <div className="relative w-full max-w-md sm:max-w-lg">
+                {/* Floating Reward Pill */}
+                <div className="absolute top-4 right-4 z-20 bg-white/95 backdrop-blur-md border border-[#e2ede6] rounded-2xl px-3.5 py-2 shadow-md flex items-center gap-2">
+                  <span className="text-amber-500 text-sm">⭐</span>
+                  <div>
+                    <p className="text-xs font-bold text-[#1c2e24]">+150</p>
+                    <p className="text-[9px] text-[#637d6e]">Poin Tamu</p>
+                  </div>
+                </div>
+
+                {/* RSVP Image unstyled */}
+                <Image
+                  src="/images/RSVP.png"
+                  alt="RSVP Undangan Gemundang"
+                  width={1289}
+                  height={1221}
+                  className="w-full h-auto object-contain block"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. SECTION 4: CALL TO ACTION DENGAN WEDDING CAKE */}
+      {/* Background seamless sesuai tepi cake.png: #faf7f0 */}
+      <section className="py-16 md:py-24 bg-[#faf7f0] border-t border-[#eae3d9] relative">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            {/* Left Content */}
+            <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
+              <span className="text-[11px] uppercase tracking-widest font-semibold text-[#5a7765]">
+                Siap Membuat Undangan Pernikahanmu?
+              </span>
+
+              <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[#1c2e24] tracking-tight leading-tight">
+                Mulai Sekarang Bersama Gemundang
+              </h2>
+
+              <p className="text-sm sm:text-base text-[#446050] max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                Buat undangan pernikahan yang unik, interaktif, dan tak terlupakan. Gratis template, mudah digunakan, dan penuh kejutan!
+              </p>
+
+              <div>
+                <Link
+                  href="/dashboard"
+                  className="px-6 py-3.5 rounded-full bg-[#2d5a43] hover:bg-[#234734] text-white font-medium text-sm shadow-md hover:shadow-lg transition inline-flex items-center gap-2 group"
+                >
+                  <span>Buat Undangan Sekarang</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Cake Artwork — unstyled, seamless with #faf7f0 */}
+            <div className="lg:col-span-6 relative flex justify-center items-center">
+              <div className="relative w-full max-w-md sm:max-w-lg">
+                {/* Floating Gift Badge */}
+                <div className="absolute top-4 right-4 z-20 bg-white/95 backdrop-blur-md border border-[#e2ede6] rounded-2xl p-2.5 shadow-md max-w-[190px]">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-base">🎁</span>
+                    <div>
+                      <p className="text-[10px] font-bold text-[#1c2e24] leading-tight">
+                        Hadiah Spesial
+                      </p>
+                      <p className="text-[9px] text-[#637d6e]">Menanti Tamu!</p>
+                    </div>
+                  </div>
+                  <div className="w-full bg-[#e8efe9] rounded-full h-1 overflow-hidden">
+                    <div className="bg-[#2d5a43] h-full rounded-full" style={{ width: '65%' }} />
+                  </div>
+                </div>
+
+                {/* Cake Image unstyled */}
+                <Image
+                  src="/images/cake.png"
+                  alt="Wedding Cake Celebration"
+                  width={1391}
+                  height={1131}
+                  className="w-full h-auto object-contain block"
+                />
+
+                {/* Romantic Card Quote */}
+                <div className="absolute bottom-10 right-4 z-20 bg-white/95 backdrop-blur-sm border border-[#e2ede6] rounded-2xl px-3.5 py-2 shadow-sm text-[11px] text-[#2d5a43] font-serif italic text-center">
+                  Setiap undangan adalah awal dari petualangan ♡
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. SECTION 5: FAQ ACCORDION */}
+      <section id="faq" className="py-16 md:py-24 bg-[#FBFDFB] border-t border-[#e2ece5]">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
+          <div className="text-center space-y-2">
+            <span className="text-[11px] uppercase tracking-widest font-semibold text-[#5a7765]">
+              Pertanyaan yang Sering Diajukan
+            </span>
+            <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#1c2e24]">
+              FAQ Gemundang
+            </h2>
+            <p className="text-xs sm:text-sm text-[#446050]">
+              Segala hal yang perlu Anda ketahui tentang membuat undangan gamifikasi di Gemundang.
             </p>
           </div>
 
-          {/* Quick Demo Button */}
-          <Link
-            href="/view/wedding-adventure?to=Tamu+Spesial"
-            className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold shadow-xl flex items-center gap-2.5 transition transform hover:-translate-y-0.5"
-          >
-            <Play className="w-4 h-4 fill-slate-950" />
-            <span>Coba Mainkan Demo Game</span>
-          </Link>
-        </div>
-      </header>
-
-      {/* MAIN CONTAINER */}
-      <main className="max-w-6xl mx-auto w-full p-3 sm:p-6 space-y-8 sm:space-y-10 flex-1">
-        {/* NON-USER CALL TO ACTION */}
-        {authLoaded && !user && (
-          <section className="bg-gradient-to-br from-slate-900 to-slate-900/40 border border-slate-800 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-bold text-white">Mulai buat undangan game Anda</h2>
-              <p className="text-xs text-slate-400">Daftar atau masuk untuk membuat projek baru, menyimpan, dan membagikan template.</p>
-            </div>
-            <div className="flex gap-2">
-              <Link href="/login" className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-semibold">Masuk</Link>
-              <Link href="/register" className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold">Daftar Gratis</Link>
-            </div>
-          </section>
-        )}
-
-        {/* CREATE NEW PROJECT SECTION (ONLY LOGGED-IN USERS) */}
-        {user && (
-          <section
-            id="create-project"
-            className="bg-gradient-to-br from-slate-900 to-slate-900/40 border border-slate-800 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl shadow-xl space-y-6"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                <Plus className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">Buat Projek Undangan Baru</h2>
-                <p className="text-xs text-slate-400">
-                  Tentukan judul dan slug kustom untuk membagikan editor, template, atau link bermain tamu
-                </p>
-              </div>
-            </div>
-
-            {fromTemplate && (
-              <div className="flex items-center justify-between gap-3 text-xs bg-sky-500/10 border border-sky-500/30 text-sky-300 rounded-xl px-3 py-2">
-                <span className="flex items-center gap-2">
-                  <LayoutTemplate className="w-4 h-4" />
-                  Mulai dari template: <b>{fromTemplate.title}</b> oleh {fromTemplate.ownerName}
-                </span>
-                <button type="button" onClick={() => setFromTemplate(null)} className="hover:text-white cursor-pointer" title="Batalkan template">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-
-            {/* Pilihan Tema Undangan */}
-            {!fromTemplate && (
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-slate-300">
-                  Pilih Format / Gaya Undangan
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {ALL_THEMES.map((th) => {
-                    const Icon = th.icon;
-                    const isSelected = selectedTheme === th.id;
-                    return (
-                      <button
-                        key={th.id}
-                        type="button"
-                        onClick={() => setSelectedTheme(th.id)}
-                        className={`p-3 rounded-2xl border text-left flex items-start gap-3 transition cursor-pointer ${
-                          isSelected
-                            ? 'border-amber-400 bg-amber-500/10 ring-1 ring-amber-400/50'
-                            : 'border-slate-800 bg-slate-800/40 hover:border-slate-700 hover:bg-slate-800/70'
-                        }`}
-                      >
-                        <div className={`p-2.5 rounded-xl shrink-0 ${isSelected ? 'bg-amber-400 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'}`}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-xs font-bold text-white">{th.name}</span>
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${isSelected ? 'bg-amber-400/20 text-amber-300' : 'bg-slate-800 text-slate-400'}`}>
-                              {th.badge}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
-                            {th.description}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-12 gap-4">
-              <div className="md:col-span-5">
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Judul Undangan / Acara
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newTitle}
-                  onChange={e => handleTitleChange(e.target.value)}
-                  placeholder="Contoh: Petualangan Pernikahan Romeo & Juliet"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              <div className="md:col-span-5">
-                <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center justify-between">
-                  <span>Slug Kustom (ID Projek)</span>
-                  {slugStatus === 'valid' && (
-                    <span className="text-[11px] text-emerald-400 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Tersedia
-                    </span>
-                  )}
-                  {slugStatus === 'taken' && (
-                    <span className="text-[11px] text-rose-400 flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5" /> Sudah Dipakai
-                    </span>
-                  )}
-                  {slugStatus === 'invalid' && (
-                    <span className="text-[11px] text-amber-400 flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5" /> Hanya huruf kecil, angka, tanda &apos;-&apos;
-                    </span>
-                  )}
-                </label>
-                <div className="relative flex items-center">
-                  <span className="absolute left-3 text-xs text-slate-500 select-none">/</span>
-                  <input
-                    type="text"
-                    required
-                    value={newSlug}
-                    onChange={e => handleSlugInputChange(e.target.value)}
-                    placeholder="romeo-juliet-quest"
-                    className="w-full pl-6 pr-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-sm text-white focus:outline-none focus:border-amber-400 font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="md:col-span-2 flex items-end">
-                <button
-                  type="submit"
-                  disabled={slugStatus !== 'valid'}
-                  className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold text-sm transition shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  <span>Buka Editor</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Flags */}
-              <div className="md:col-span-12 flex flex-wrap items-center gap-x-6 gap-y-2 pt-1">
-                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isTemplateEnabled}
-                    onChange={e => setIsTemplateEnabled(e.target.checked)}
-                    className="w-4 h-4 rounded accent-amber-500 cursor-pointer"
-                  />
-                  <span>
-                    Izinkan project ini dibuka dalam mode <b>Form Template (/template/:slug)</b>
-                  </span>
-                </label>
-                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={publishAsTemplate}
-                    onChange={e => setPublishAsTemplate(e.target.checked)}
-                    className="w-4 h-4 rounded accent-amber-500 cursor-pointer"
-                  />
-                  <span>Jadikan <b>template</b> yang bisa dipakai ulang</span>
-                </label>
-                {publishAsTemplate && (
-                  <VisibilityToggle value={newVisibility} onChange={setNewVisibility} />
-                )}
-              </div>
-
-              {createError && (
-                <div className="md:col-span-12 text-xs text-rose-400 flex items-center gap-1.5">
-                  <AlertCircle className="w-4 h-4" /> {createError}
-                </div>
-              )}
-            </form>
-          </section>
-        )}
-
-        {/* TAB NAVIGATION: PROJEK SAYA VS GALERI TEMPLATE */}
-        <section className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-3">
-            <div className="flex items-center gap-2">
-              {user && (
-                <button
-                  onClick={() => handleTabChange('projects')}
-                  className={`px-4 py-2 rounded-2xl text-xs md:text-sm font-bold flex items-center gap-2 transition cursor-pointer ${
-                    activeTab === 'projects'
-                      ? 'bg-amber-500 text-slate-950 shadow-lg'
-                      : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                  }`}
-                >
-                  <FolderKanban className="w-4 h-4" />
-                  <span>Projek Saya</span>
-                  {projectsState.loaded && (
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                      activeTab === 'projects' ? 'bg-slate-950 text-amber-300' : 'bg-slate-800 text-slate-300'
-                    }`}>
-                      {projectsState.total}
-                    </span>
-                  )}
-                </button>
-              )}
-
-              <button
-                onClick={() => handleTabChange('templates')}
-                className={`px-4 py-2 rounded-2xl text-xs md:text-sm font-bold flex items-center gap-2 transition cursor-pointer ${
-                  activeTab === 'templates'
-                    ? 'bg-sky-500 text-slate-950 shadow-lg'
-                    : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                }`}
+          <div className="space-y-3">
+            {[
+              {
+                q: 'Apa itu Gemundang dan bagaimana cara kerjanya?',
+                a: 'Gemundang adalah platform pembuat website undangan pernikahan berbasis gamifikasi pertama di Indonesia. Anda bisa memilih format Vertical Scroll modern atau 2D Platformer petualangan, menyesuaikan foto, teks, dan lokasi acara secara visual, lalu membagikannya kepada para tamu undangan lewat WhatsApp atau media sosial.'
+              },
+              {
+                q: 'Apakah tamu perlu mendownload aplikasi untuk membuka undangan?',
+                a: 'Tidak perlu sama sekali! Undangan berjalan langsung di browser HP (Chrome, Safari, dsb.) secara responsif, cepat, dan lancar tanpa perlu install aplikasi apapun.'
+              },
+              {
+                q: 'Bagaimana cara konfirmasi kehadiran (RSVP) oleh tamu?',
+                a: 'Tamu cukup mengklik tombol RSVP atau berinteraksi dengan karakter di dalam undangan, mengisi nama, jumlah tamu (pax), dan ucapan doa restu. Data tersebut langsung masuk ke dashboard Anda secara real-time.'
+              },
+              {
+                q: 'Apakah saya bisa menggunakan nama tamu personal di tautan?',
+                a: 'Tentu saja! Anda bisa menambahkan parameter nama tamu (misal: /view/pernikahan-kami?to=Budi+Sekeluarga) sehingga nama tamu otomatis terpampang manis di sampul undangan.'
+              }
+            ].map((faq, idx) => (
+              <div
+                key={faq.q}
+                className="rounded-2xl border border-[#dce8e0] bg-white overflow-hidden transition"
               >
-                <LayoutTemplate className="w-4 h-4" />
-                <span>Galeri Template</span>
-                {templatesState.loaded && (
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                    activeTab === 'templates' ? 'bg-slate-950 text-sky-300' : 'bg-slate-800 text-slate-300'
-                  }`}>
-                    {templatesState.total}
-                  </span>
+                <button
+                  type="button"
+                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                  className="w-full p-4 sm:p-5 text-left font-bold text-sm text-[#1c2e24] flex items-center justify-between gap-4 cursor-pointer"
+                >
+                  <span>{faq.q}</span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-[#5a7765] transition-transform duration-200 shrink-0 ${
+                      openFaq === idx ? 'rotate-180 text-[#2d5a43]' : ''
+                    }`}
+                  />
+                </button>
+                {openFaq === idx && (
+                  <div className="px-4 pb-4 sm:px-5 sm:pb-5 text-xs sm:text-sm text-[#446050] leading-relaxed border-t border-[#eaf2ec] pt-3">
+                    {faq.a}
+                  </div>
                 )}
-              </button>
-            </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            <span className="text-xs text-slate-400">
-              {activeTab === 'projects'
-                ? 'Kelola semua projek undangan platformer yang Anda buat'
-                : 'Pilih template umum atau gunakan sebagai cetak biru projek baru'}
-            </span>
+      {/* 7. FOOTER */}
+      <footer className="border-t border-[#e2ece5] bg-[#FBFDFB] py-10 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          {/* Brand */}
+          <div className="flex flex-col items-center md:items-start space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🌸</span>
+              <span className="font-serif font-bold text-xl tracking-tight text-[#1c2e24]">
+                Gem<span className="text-[#2d5a43]">undang</span>
+              </span>
+            </div>
+            <p className="text-xs text-[#637d6e]">Undangan. Bermain. Berbagi.</p>
           </div>
 
-          {/* ========================================================= */}
-          {/* TAB 1: PROJEK SAYA (LAZY LOADED)                          */}
-          {/* ========================================================= */}
-          {activeTab === 'projects' && user && (
-            <div className="space-y-6">
-              {/* Initial Loading Skeleton */}
-              {projectsState.loading && projectsState.items.length === 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[1, 2, 3].map((n) => (
-                    <div key={n} className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4 animate-pulse">
-                      <div className="flex justify-between items-center">
-                        <div className="h-5 w-24 bg-slate-800 rounded-full" />
-                        <div className="h-5 w-16 bg-slate-800 rounded-full" />
-                      </div>
-                      <div className="h-6 w-3/4 bg-slate-800 rounded" />
-                      <div className="h-4 w-full bg-slate-800/60 rounded" />
-                      <div className="h-10 bg-slate-800/40 rounded-xl" />
-                    </div>
-                  ))}
-                </div>
-              )}
+          {/* Links */}
+          <div className="flex items-center gap-6 text-xs text-[#526d5d]">
+            <button
+              type="button"
+              onClick={() => scrollToSection('beranda')}
+              className="hover:text-[#1c2e24] transition cursor-pointer"
+            >
+              Beranda
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('tentang')}
+              className="hover:text-[#1c2e24] transition cursor-pointer"
+            >
+              Tentang
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('fitur')}
+              className="hover:text-[#1c2e24] transition cursor-pointer"
+            >
+              Fitur
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('testimoni')}
+              className="hover:text-[#1c2e24] transition cursor-pointer"
+            >
+              Testimoni
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('faq')}
+              className="hover:text-[#1c2e24] transition cursor-pointer"
+            >
+              FAQ
+            </button>
+          </div>
 
-              {/* Empty Projects State */}
-              {!projectsState.loading && projectsState.loaded && projectsState.items.length === 0 && (
-                <div className="text-center py-12 px-6 border border-dashed border-slate-800 rounded-3xl space-y-3">
-                  <FolderKanban className="w-12 h-12 mx-auto text-slate-600" />
-                  <h3 className="text-base font-bold text-white">Belum Ada Projek</h3>
-                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                    Buat projek baru melalui formulir di atas atau gunakan template siap pakai dari Galeri Template.
-                  </p>
-                  <button
-                    onClick={() => handleTabChange('templates')}
-                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-amber-400"
-                  >
-                    Buka Galeri Template
-                  </button>
-                </div>
-              )}
-
-              {/* Projects Grid */}
-              {projectsState.items.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {projectsState.items.map((proj) => (
-                    <div
-                      key={proj.slug}
-                      className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-3xl p-5 flex flex-col justify-between shadow-xl transition space-y-4"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between mb-2 gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 truncate">
-                              /{proj.slug}
-                            </span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
-                              proj.theme_type === 'vertical_scroll'
-                                ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'
-                                : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                            }`}>
-                              {getThemeDefinition(proj.theme_type).badge}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {proj.isTemplate && <VisibilityBadge visibility={proj.visibility} />}
-                            <button
-                              onClick={() => handleDelete(proj)}
-                              className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 cursor-pointer transition"
-                              title="Hapus projek"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-
-                        <h3 className="text-base font-bold text-white line-clamp-1">{proj.title}</h3>
-                        <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                          {proj.subtitle || 'Petualangan platformer interaktif untuk para tamu undangan.'}
-                        </p>
-
-                        <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-4 text-xs text-slate-400">
-                          <span className="font-mono text-amber-300"><b>v{proj.currentVersion}</b> Versi</span>
-                          <span>•</span>
-                          <span><b>{proj.rsvpCount}</b> RSVP Tamu</span>
-                        </div>
-
-                        {/* Template Visibility Switcher */}
-                        <div className="mt-3 flex flex-wrap items-center gap-3">
-                          <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={proj.isTemplate}
-                              onChange={e => changeTemplateSettings(proj, e.target.checked, proj.visibility)}
-                              className="w-4 h-4 rounded accent-amber-500 cursor-pointer"
-                            />
-                            <span>Jadikan template</span>
-                          </label>
-                          {proj.isTemplate && (
-                            <VisibilityToggle
-                              value={proj.visibility}
-                              onChange={v => changeTemplateSettings(proj, true, v)}
-                            />
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Action Buttons for Project */}
-                      <div className="space-y-2 pt-2 border-t border-slate-800">
-                        <div className="grid grid-cols-3 gap-2">
-                          <Link
-                            href={`/editor/${proj.slug}`}
-                            className="py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex flex-col items-center justify-center gap-1 transition"
-                            title="Buka Level Editor"
-                          >
-                            <Sliders className="w-4 h-4 text-amber-400" />
-                            <span>Editor</span>
-                          </Link>
-
-                          <Link
-                            href={`/template/${proj.slug}`}
-                            className="py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex flex-col items-center justify-center gap-1 transition"
-                            title="Buka Form Template"
-                          >
-                            <Edit3 className="w-4 h-4 text-sky-400" />
-                            <span>Form</span>
-                          </Link>
-
-                          <Link
-                            href={`/view/${proj.slug}`}
-                            target="_blank"
-                            className="py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex flex-col items-center justify-center gap-1 transition"
-                            title="Mainkan Game Undangan"
-                          >
-                            <Eye className="w-4 h-4 text-emerald-400" />
-                            <span>Play</span>
-                          </Link>
-                        </div>
-
-                        <button
-                          onClick={() => copyLink(`/view/${proj.slug}`, proj.slug)}
-                          className="w-full py-1.5 px-3 rounded-xl bg-slate-950/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-[11px] font-medium transition flex items-center justify-center gap-1.5 border border-slate-800 cursor-pointer"
-                        >
-                          {copiedSlug === proj.slug ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                              <span className="text-emerald-400">Link Tamu Berhasil Disalin!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5" />
-                              <span>Salin Link Undangan (/view/{proj.slug})</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Lazy Load More Projects Button */}
-              {projectsState.hasMore && (
-                <div className="flex flex-col items-center justify-center pt-4 space-y-2">
-                  <button
-                    onClick={() => loadProjects(projectsState.page + 1, true)}
-                    disabled={projectsState.loading}
-                    className="px-6 py-2.5 rounded-2xl bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-200 text-xs font-bold transition flex items-center gap-2 shadow-lg disabled:opacity-50 cursor-pointer"
-                  >
-                    {projectsState.loading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                        <span>Memuat Projek Berikutnya...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4 text-amber-400" />
-                        <span>Muat Lebih Banyak Projek</span>
-                      </>
-                    )}
-                  </button>
-                  <span className="text-[11px] text-slate-500">
-                    Menampilkan {projectsState.items.length} dari {projectsState.total} projek
-                  </span>
-                </div>
-              )}
+          {/* Social Icons & Copyright */}
+          <div className="flex flex-col items-center md:items-end gap-2">
+            <div className="flex items-center gap-3 text-[#526d5d]">
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-[#2d5a43] transition p-1"
+                aria-label="Instagram"
+              >
+                <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                </svg>
+              </a>
+              <a
+                href="https://tiktok.com"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-[#2d5a43] transition p-1"
+                aria-label="TikTok"
+              >
+                <Music2 className="w-4 h-4" />
+              </a>
+              <a
+                href="https://whatsapp.com"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-[#2d5a43] transition p-1"
+                aria-label="WhatsApp"
+              >
+                <MessageCircle className="w-4 h-4" />
+              </a>
             </div>
-          )}
-
-          {/* ========================================================= */}
-          {/* TAB 2: GALERI TEMPLATE (LAZY LOADED)                      */}
-          {/* ========================================================= */}
-          {activeTab === 'templates' && (
-            <div className="space-y-6">
-              {/* Initial Loading Skeleton */}
-              {templatesState.loading && templatesState.items.length === 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[1, 2, 3].map((n) => (
-                    <div key={n} className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4 animate-pulse">
-                      <div className="flex justify-between items-center">
-                        <div className="h-5 w-24 bg-slate-800 rounded-full" />
-                        <div className="h-5 w-16 bg-slate-800 rounded-full" />
-                      </div>
-                      <div className="h-6 w-3/4 bg-slate-800 rounded" />
-                      <div className="h-4 w-full bg-slate-800/60 rounded" />
-                      <div className="h-10 bg-slate-800/40 rounded-xl" />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Empty Templates State */}
-              {!templatesState.loading && templatesState.loaded && templatesState.items.length === 0 && (
-                <div className="text-center py-12 px-6 border border-dashed border-slate-800 rounded-3xl space-y-3">
-                  <LayoutTemplate className="w-12 h-12 mx-auto text-slate-600" />
-                  <h3 className="text-base font-bold text-white">Belum Ada Template</h3>
-                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                    Belum ada template public yang tersedia. Buat projek Anda sendiri dan publikasikan sebagai template.
-                  </p>
-                </div>
-              )}
-
-              {/* Templates Grid */}
-              {templatesState.items.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {templatesState.items.map((tpl) => (
-                    <div
-                      key={tpl.slug}
-                      className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-3xl p-5 flex flex-col justify-between shadow-xl transition space-y-4"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between mb-2 gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-[11px] text-slate-400">
-                              oleh <b className="text-slate-300">{tpl.isOwner ? 'Anda' : tpl.ownerName}</b>
-                            </span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
-                              tpl.theme_type === 'vertical_scroll'
-                                ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'
-                                : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                            }`}>
-                              {getThemeDefinition(tpl.theme_type).badge}
-                            </span>
-                          </div>
-                          <VisibilityBadge visibility={tpl.visibility} />
-                        </div>
-                        <h3 className="text-base font-bold text-white line-clamp-1">{tpl.title}</h3>
-                        <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                          {tpl.subtitle || 'Petualangan platformer interaktif untuk para tamu undangan.'}
-                        </p>
-                        <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-4 text-xs text-slate-400">
-                          <span className="font-mono text-amber-300"><b>v{tpl.currentVersion}</b> Versi</span>
-                          <span>•</span>
-                          <span>Siap Digunakan</span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-                        <Link
-                          href={`/view/${tpl.slug}`}
-                          target="_blank"
-                          className="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
-                        >
-                          <Eye className="w-4 h-4 text-emerald-400" /> Pratinjau
-                        </Link>
-                        <button
-                          onClick={() => applyTemplate(tpl)}
-                          className="py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
-                        >
-                          <Plus className="w-4 h-4" /> Gunakan
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Lazy Load More Templates Button */}
-              {templatesState.hasMore && (
-                <div className="flex flex-col items-center justify-center pt-4 space-y-2">
-                  <button
-                    onClick={() => loadTemplates(templatesState.page + 1, true)}
-                    disabled={templatesState.loading}
-                    className="px-6 py-2.5 rounded-2xl bg-slate-900 border border-slate-700 hover:border-sky-400 text-slate-200 text-xs font-bold transition flex items-center gap-2 shadow-lg disabled:opacity-50 cursor-pointer"
-                  >
-                    {templatesState.loading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-sky-400" />
-                        <span>Memuat Template Berikutnya...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4 text-sky-400" />
-                        <span>Muat Lebih Banyak Template</span>
-                      </>
-                    )}
-                  </button>
-                  <span className="text-[11px] text-slate-500">
-                    Menampilkan {templatesState.items.length} dari {templatesState.total} template
-                  </span>
-                </div>
-              )}
+            <div className="text-xs text-[#759180]">
+              © 2026 Gemundang. Semerbak Rindang.
             </div>
-          )}
-        </section>
-      </main>
-
-      {/* FOOTER */}
-      <footer className="border-t border-slate-800/80 py-6 px-6 text-center text-xs text-slate-500">
-        GemUndang © 2026 — Platformer Invitation Website Builder
+          </div>
+        </div>
       </footer>
-    </div>
-  );
-}
-
-function VisibilityBadge({ visibility }: { visibility: TemplateVisibility }) {
-  return visibility === 'PUBLIC' ? (
-    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-      <Globe className="w-3 h-3" /> Public
-    </span>
-  ) : (
-    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-700/40 text-slate-300 border border-slate-600 flex items-center gap-1">
-      <Lock className="w-3 h-3" /> Private
-    </span>
-  );
-}
-
-function VisibilityToggle({
-  value,
-  onChange
-}: {
-  value: TemplateVisibility;
-  onChange: (v: TemplateVisibility) => void;
-}) {
-  const btn = (v: TemplateVisibility, label: string, Icon: typeof Globe) => (
-    <button
-      type="button"
-      onClick={() => onChange(v)}
-      className={`px-2.5 py-1 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition ${
-        value === v ? 'bg-amber-500 text-slate-950' : 'text-slate-300 hover:bg-slate-700'
-      }`}
-    >
-      <Icon className="w-3 h-3" /> {label}
-    </button>
-  );
-  return (
-    <div className="inline-flex rounded-lg overflow-hidden border border-slate-700 bg-slate-800">
-      {btn('PRIVATE', 'Private', Lock)}
-      {btn('PUBLIC', 'Public', Globe)}
     </div>
   );
 }

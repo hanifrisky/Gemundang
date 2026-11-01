@@ -7,7 +7,15 @@
     "accentColor": "#ec4899",
     "showScrollIndicator": true,
     "smoothScroll": true,
-    "stageWidth": 480
+    "stageWidth": 480,
+    "layoutMode": "fixed",
+    "fixedAlign": "left",
+    "globalBackground": {
+      "type": "gradient",
+      "value": "linear-gradient(135deg, #ffffff 0%, #faf5ff 55%, #f3e8ff 100%)",
+      "overlayOpacity": 0,
+      "backgroundPosition": "center"
+    }
   },
   "pages": [
     {
@@ -162,6 +170,48 @@
           "appearanceLabel": "Foto Utama Pasangan (Lingkaran)",
           "editable_content": true,
           "contentLabel": "Keterangan Foto Utama"
+        },
+        {
+          "id": "el-1793512096092-2",
+          "name": "Tombol Baru",
+          "type": "button",
+          "x": 50,
+          "y": 92,
+          "width": 210,
+          "height": 48,
+          "rotation": 0,
+          "scale": 1,
+          "flipX": false,
+          "flipY": false,
+          "zIndex": 5,
+          "content": "Klik Saya",
+          "styleOptions": {
+            "fontSize": 14,
+            "fontWeight": "bold",
+            "color": "#ffffff",
+            "backgroundColor": "#d97706",
+            "textAlign": "center",
+            "borderRadius": 12,
+            "shadow": "lg",
+            "opacity": 1
+          },
+          "animation": {
+            "entry": {
+              "type": "fade-in",
+              "duration": 0.8,
+              "delay": 0.1,
+              "easing": "ease-out",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "none",
+              "duration": 3
+            }
+          },
+          "hasInteraction": false,
+          "editable_appearance": false,
+          "editable_content": true,
+          "contentLabel": "Isi Teks / Konten"
         }
       ]
     },

@@ -36,34 +36,38 @@ export default function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   };
 
   const inputClass =
-    'w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-base sm:text-sm text-white focus:outline-none focus:border-amber-400';
+    'w-full px-4 py-2.5 rounded-xl bg-[#FBFDFB] border border-[#d2e5da] text-base sm:text-sm text-[#1C2E24] placeholder:text-[#5A7765]/50 focus:outline-none focus:border-[#2D5A43] focus:ring-1 focus:ring-[#2D5A43] transition';
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-3 sm:p-6">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-xl space-y-6">
+    <div className="min-h-screen bg-[#F4F8F5] text-[#1C2E24] flex items-center justify-center p-3 sm:p-6">
+      <div className="w-full max-w-md bg-white border border-[#E2EDE6] rounded-2xl sm:rounded-3xl p-6 sm:p-10 shadow-xl shadow-[#2D5A43]/5 space-y-6">
         <div className="text-center space-y-2">
-          <Link href="/" className="inline-flex items-center gap-2 text-2xl font-extrabold text-white">
-            <Gamepad2 className="w-6 h-6 text-amber-400" />
-            Gem<span className="text-amber-400">Undang</span>
+          <Link href="/" className="inline-flex items-center gap-2 group">
+            <span className="w-8 h-8 rounded-full bg-[#E8F3ED] flex items-center justify-center text-[#2D5A43] group-hover:scale-105 transition">
+              <Gamepad2 className="w-4 h-4" />
+            </span>
+            <span className="font-serif text-2xl font-bold tracking-tight text-[#1C2E24]">
+              Gem<span className="text-[#2D5A43]">Undang</span>
+            </span>
           </Link>
-          <p className="text-sm text-slate-400">
-            {isRegister ? 'Buat akun untuk mulai membangun undangan game.' : 'Masuk untuk mengelola projek undangan Anda.'}
+          <p className="text-sm text-[#5A7765]">
+            {isRegister ? 'Buat akun untuk mulai membangun undangan game interaktif.' : 'Masuk untuk mengelola projek undangan Anda.'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {isRegister && (
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Nama</label>
-              <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+              <label className="block text-xs font-semibold text-[#446050] mb-1">Nama</label>
+              <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className={inputClass} placeholder="Nama Lengkap" />
             </div>
           )}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Email</label>
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+            <label className="block text-xs font-semibold text-[#446050] mb-1">Email</label>
+            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} placeholder="nama@email.com" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+            <label className="block text-xs font-semibold text-[#446050] mb-1">Password</label>
             <input
               type="password"
               required
@@ -71,12 +75,13 @@ export default function AuthForm({ mode }: { mode: 'login' | 'register' }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={inputClass}
+              placeholder="••••••••"
             />
-            {isRegister && <p className="text-[11px] text-slate-500 mt-1">Minimal 8 karakter.</p>}
+            {isRegister && <p className="text-[11px] text-[#5A7765] mt-1">Minimal 8 karakter.</p>}
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-2 text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -85,18 +90,18 @@ export default function AuthForm({ mode }: { mode: 'login' | 'register' }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:bg-slate-700 text-slate-950 font-bold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full py-3 rounded-full bg-[#2D5A43] hover:bg-[#234734] disabled:bg-[#d2e5da] text-white font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-[#2D5A43]/20"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {isRegister ? 'Daftar' : 'Masuk'}
+            {isRegister ? 'Daftar Sekarang' : 'Masuk ke Dashboard'}
           </button>
         </form>
 
-        <p className="text-center text-xs text-slate-400">
+        <p className="text-center text-xs text-[#5A7765]">
           {isRegister ? (
-            <>Sudah punya akun? <Link href="/login" className="text-amber-400 hover:underline">Masuk</Link></>
+            <>Sudah punya akun? <Link href="/login" className="text-[#2D5A43] font-semibold hover:underline">Masuk</Link></>
           ) : (
-            <>Belum punya akun? <Link href="/register" className="text-amber-400 hover:underline">Daftar</Link></>
+            <>Belum punya akun? <Link href="/register" className="text-[#2D5A43] font-semibold hover:underline">Daftar sekarang</Link></>
           )}
         </p>
       </div>

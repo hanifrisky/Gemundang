@@ -1,0 +1,818 @@
+{
+  "slug": "hanif-dan-nadila",
+  "title": "Undangan",
+  "subtitle": "Undangan Pernikahan Romantis & Elegan",
+  "theme_type": "vertical_scroll",
+  "is_template_enabled": true,
+  "musicUrl": "",
+  "globalTheme": {
+    "fontFamily": "sans",
+    "primaryColor": "#d97706",
+    "accentColor": "#e11d48",
+    "showScrollIndicator": true,
+    "smoothScroll": true,
+    "stageWidth": 800,
+    "layoutMode": "fluid",
+    "fixedAlign": "center",
+    "globalBackground": {
+      "type": "gradient",
+      "value": "linear-gradient(180deg, #ffffff 0%, #fffbeb 55%, #f8fafc 100%)",
+      "overlayOpacity": 0,
+      "backgroundPosition": "center"
+    },
+    "outerBackdrop": {
+      "type": "image",
+      "value": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1600&q=80",
+      "overlayOpacity": 0.45,
+      "backgroundPosition": "center"
+    }
+  },
+  "pages": [
+    {
+      "id": "page-hero",
+      "title": "Halaman Utama (Cover)",
+      "order": 1,
+      "minHeight": "100vh",
+      "useGlobalBackground": false,
+      "background": {
+        "type": "gradient",
+        "value": "linear-gradient(135deg, #ffffff 0%, #fffbeb 55%, #fef3c7 100%)",
+        "overlayOpacity": 0
+      },
+      "elements": [
+        {
+          "id": "el-hero-badge",
+          "name": "Badge Undangan",
+          "type": "text",
+          "x": 50,
+          "y": 22,
+          "width": 320,
+          "height": 36,
+          "zIndex": 2,
+          "content": "— THE WEDDING CELEBRATION —",
+          "styleOptions": {
+            "fontSize": 13,
+            "fontWeight": "bold",
+            "color": "#b45309",
+            "textAlign": "center"
+          },
+          "animation": {
+            "entry": {
+              "type": "fade-in",
+              "duration": 0.8,
+              "delay": 0.2,
+              "easing": "ease-out",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "none",
+              "duration": 3
+            }
+          },
+          "hasInteraction": false,
+          "editable_appearance": false,
+          "editable_content": true,
+          "contentLabel": "Label Tagline Atas"
+        },
+        {
+          "id": "el-hero-title",
+          "name": "Nama Pasangan Utama",
+          "type": "text",
+          "x": 50,
+          "y": 35,
+          "width": 600,
+          "height": 80,
+          "zIndex": 3,
+          "content": "Dimas & Sarah",
+          "styleOptions": {
+            "fontSize": 48,
+            "fontWeight": "extrabold",
+            "color": "#0f172a",
+            "textAlign": "center",
+            "shadow": "none"
+          },
+          "animation": {
+            "entry": {
+              "type": "slide-down",
+              "duration": 1,
+              "delay": 0.3,
+              "easing": "spring",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "pulse",
+              "duration": 4
+            }
+          },
+          "hasInteraction": false,
+          "editable_appearance": false,
+          "editable_content": true,
+          "contentLabel": "Nama Pasangan Pengantin"
+        },
+        {
+          "id": "el-hero-date",
+          "name": "Tanggal Resepsi Singkat",
+          "type": "text",
+          "x": 50,
+          "y": 52,
+          "width": 400,
+          "height": 40,
+          "zIndex": 2,
+          "content": "Sabtu, 28 November 2026",
+          "styleOptions": {
+            "fontSize": 16,
+            "fontWeight": "medium",
+            "color": "#475569",
+            "textAlign": "center"
+          },
+          "animation": {
+            "entry": {
+              "type": "fade-in",
+              "duration": 0.8,
+              "delay": 0.5,
+              "easing": "ease-out",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "none",
+              "duration": 3
+            }
+          },
+          "hasInteraction": false,
+          "editable_appearance": false,
+          "editable_content": true,
+          "contentLabel": "Tanggal Acara (Cover)"
+        },
+        {
+          "id": "el-hero-photo",
+          "name": "Foto Utama Pengantin (Floating)",
+          "type": "image",
+          "x": 50,
+          "y": 72,
+          "width": 140,
+          "height": 140,
+          "zIndex": 4,
+          "mediaUrl": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=400&q=80",
+          "styleOptions": {
+            "borderRadius": 999,
+            "shadow": "lg"
+          },
+          "animation": {
+            "entry": {
+              "type": "zoom-in",
+              "duration": 0.9,
+              "delay": 0.6,
+              "easing": "spring",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "float",
+              "duration": 3.5
+            }
+          },
+          "hasInteraction": true,
+          "interaction": {
+            "type": "image",
+            "title": "Momen Berharga Kami",
+            "content": "Setiap detik bersamamu adalah anugerah terindah.",
+            "mediaUrl": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80"
+          },
+          "editable_appearance": true,
+          "appearanceLabel": "Foto Utama Pasangan (Lingkaran)",
+          "editable_content": true,
+          "contentLabel": "Keterangan Foto Utama"
+        }
+      ]
+    },
+    {
+      "id": "page-couple",
+      "title": "Profil Mempelai",
+      "order": 2,
+      "minHeight": "100vh",
+      "useGlobalBackground": true,
+      "background": {
+        "type": "color",
+        "value": "#ffffff"
+      },
+      "elements": [
+        {
+          "id": "el-couple-header",
+          "name": "Judul Seksi Pasangan",
+          "type": "text",
+          "x": 50,
+          "y": 15,
+          "width": 500,
+          "height": 60,
+          "zIndex": 2,
+          "content": "Mempelai Pria & Wanita",
+          "styleOptions": {
+            "fontSize": 28,
+            "fontWeight": "bold",
+            "color": "#0f172a",
+            "textAlign": "center"
+          },
+          "animation": {
+            "entry": {
+              "type": "slide-up",
+              "duration": 0.7,
+              "delay": 0.1,
+              "easing": "ease-out",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "none",
+              "duration": 3
+            }
+          },
+          "hasInteraction": false,
+          "editable_appearance": false,
+          "editable_content": true,
+          "contentLabel": "Judul Seksi Pasangan"
+        },
+        {
+          "id": "el-groom-photo",
+          "name": "Foto Mempelai Pria",
+          "type": "image",
+          "x": 32,
+          "y": 42,
+          "width": 130,
+          "height": 130,
+          "zIndex": 3,
+          "mediaUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+          "styleOptions": {
+            "borderRadius": 24,
+            "shadow": "lg"
+          },
+          "animation": {
+            "entry": {
+              "type": "slide-right",
+              "duration": 0.8,
+              "delay": 0.2,
+              "easing": "ease-out",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "breathing",
+              "duration": 4
+            }
+          },
+          "hasInteraction": false,
+          "editable_appearance": true,
+          "appearanceLabel": "Foto Mempelai Pria",
+          "editable_content": false
+        },
+        {
+          "id": "el-groom-text",
+          "name": "Bio Mempelai Pria",
+          "type": "text",
+          "x": 32,
+          "y": 65,
+          "width": 260,
+          "height": 90,
+          "zIndex": 2,
+          "content": "Dimas Pratama, S.T.\nPutra dari Bpk. Bambang & Ibu Ratna",
+          "styleOptions": {
+            "fontSize": 14,
+            "fontWeight": "semibold",
+            "color": "#334155",
+            "textAlign": "center"
+          },
+          "animation": {
+            "entry": {
+              "type": "fade-in",
+              "duration": 0.7,
+              "delay": 0.3,
+              "easing": "ease-out",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "none",
+              "duration": 3
+            }
+          },
+          "hasInteraction": false,
+          "editable_appearance": false,
+          "editable_content": true,
+          "contentLabel": "Biodata Mempelai Pria"
+        },
+        {
+          "id": "el-bride-photo",
+          "name": "Foto Mempelai Wanita",
+          "type": "image",
+          "x": 68,
+          "y": 42,
+          "width": 130,
+          "height": 130,
+          "zIndex": 3,
+          "mediaUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
+          "styleOptions": {
+            "borderRadius": 24,
+            "shadow": "lg"
+          },
+          "animation": {
+            "entry": {
+              "type": "slide-left",
+              "duration": 0.8,
+              "delay": 0.2,
+              "easing": "ease-out",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "breathing",
+              "duration": 4
+            }
+          },
+          "hasInteraction": false,
+          "editable_appearance": true,
+          "appearanceLabel": "Foto Mempelai Wanita",
+          "editable_content": false
+        },
+        {
+          "id": "el-bride-text",
+          "name": "Bio Mempelai Wanita",
+          "type": "text",
+          "x": 68,
+          "y": 65,
+          "width": 260,
+          "height": 90,
+          "zIndex": 2,
+          "content": "Sarah Amelia, S.Ds.\nPutri dari Bpk. Hendra & Ibu Yuliana",
+          "styleOptions": {
+            "fontSize": 14,
+            "fontWeight": "semibold",
+            "color": "#334155",
+            "textAlign": "center"
+          },
+          "animation": {
+            "entry": {
+              "type": "fade-in",
+              "duration": 0.7,
+              "delay": 0.3,
+              "easing": "ease-out",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "none",
+              "duration": 3
+            }
+          },
+          "hasInteraction": false,
+          "editable_appearance": false,
+          "editable_content": true,
+          "contentLabel": "Biodata Mempelai Wanita"
+        }
+      ]
+    },
+    {
+      "id": "page-events",
+      "title": "Waktu & Tempat Acara",
+      "order": 3,
+      "minHeight": "100vh",
+      "background": {
+        "type": "gradient",
+        "value": "linear-gradient(180deg, #f8fafc 0%, #ffffff 50%, #fff1f2 100%)"
+      },
+      "elements": [
+        {
+          "id": "el-events-header",
+          "name": "Judul Rangkaian Acara",
+          "type": "text",
+          "x": 50,
+          "y": 15,
+          "width": 500,
+          "height": 50,
+          "zIndex": 2,
+          "content": "Rangkaian Acara",
+          "styleOptions": {
+            "fontSize": 28,
+            "fontWeight": "bold",
+            "color": "#0f172a",
+            "textAlign": "center"
+          },
+          "animation": {
+            "entry": {
+              "type": "slide-up",
+              "duration": 0.7,
+              "delay": 0.1,
+              "easing": "ease-out",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "none",
+              "duration": 3
+            }
+          },
+          "hasInteraction": false,
+          "editable_appearance": false,
+          "editable_content": true,
+          "contentLabel": "Judul Seksi Acara"
+        },
+        {
+          "id": "el-event-akad",
+          "name": "Rincian Akad Nikah",
+          "type": "text",
+          "x": 32,
+          "y": 45,
+          "width": 280,
+          "height": 150,
+          "zIndex": 3,
+          "content": "AKAD NIKAH\n\nSabtu, 28 November 2026\nPukul 08:00 - 10:00 WIB\n\nMasjid Raya Al-Ikhlas\nJl. Melati No. 12, Jakarta Selatan",
+          "styleOptions": {
+            "fontSize": 13,
+            "fontWeight": "medium",
+            "color": "#1e293b",
+            "backgroundColor": "#f8fafc",
+            "textAlign": "center",
+            "borderRadius": 16,
+            "shadow": "md"
+          },
+          "animation": {
+            "entry": {
+              "type": "slide-up",
+              "duration": 0.8,
+              "delay": 0.2,
+              "easing": "spring",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "none",
+              "duration": 3
+            }
+          },
+          "hasInteraction": false,
+          "editable_appearance": false,
+          "editable_content": true,
+          "contentLabel": "Detail Akad Nikah"
+        },
+        {
+          "id": "el-event-resepsi",
+          "name": "Rincian Resepsi",
+          "type": "text",
+          "x": 68,
+          "y": 45,
+          "width": 280,
+          "height": 150,
+          "zIndex": 3,
+          "content": "RESEPSI PERNIKAHAN\n\nSabtu, 28 November 2026\nPukul 11:00 - 14:00 WIB\n\nGrand Ballroom Hotel Mulia\nJl. Asia Afrika No. 1, Jakarta Pusat",
+          "styleOptions": {
+            "fontSize": 13,
+            "fontWeight": "medium",
+            "color": "#1e293b",
+            "backgroundColor": "#f8fafc",
+            "textAlign": "center",
+            "borderRadius": 16,
+            "shadow": "md"
+          },
+          "animation": {
+            "entry": {
+              "type": "slide-up",
+              "duration": 0.8,
+              "delay": 0.35,
+              "easing": "spring",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "none",
+              "duration": 3
+            }
+          },
+          "hasInteraction": false,
+          "editable_appearance": false,
+          "editable_content": true,
+          "contentLabel": "Detail Resepsi"
+        },
+        {
+          "id": "el-event-maps-btn",
+          "name": "Tombol Petunjuk Lokasi Maps",
+          "type": "button",
+          "x": 50,
+          "y": 75,
+          "width": 220,
+          "height": 48,
+          "zIndex": 4,
+          "content": "Buka di Google Maps ➔",
+          "styleOptions": {
+            "fontSize": 14,
+            "fontWeight": "bold",
+            "color": "#ffffff",
+            "backgroundColor": "#d97706",
+            "textAlign": "center",
+            "borderRadius": 12,
+            "shadow": "md"
+          },
+          "animation": {
+            "entry": {
+              "type": "bounce-in",
+              "duration": 0.8,
+              "delay": 0.5,
+              "easing": "bounce",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "shimmer",
+              "duration": 3
+            }
+          },
+          "hasInteraction": true,
+          "interaction": {
+            "type": "info",
+            "title": "Lokasi Acara",
+            "content": "Grand Ballroom Hotel Mulia Jakarta Pusat. Tersedia area parkir luas dan drop-off VIP.",
+            "actionButtonText": "Buka Google Maps",
+            "actionUrl": "https://maps.google.com"
+          },
+          "editable_appearance": false,
+          "editable_content": true,
+          "contentLabel": "Pesan Dialog Lokasi"
+        }
+      ]
+    },
+    {
+      "id": "page-gallery",
+      "title": "Galeri Foto Kenangan",
+      "order": 4,
+      "minHeight": "100vh",
+      "useGlobalBackground": true,
+      "background": {
+        "type": "color",
+        "value": "#ffffff"
+      },
+      "elements": [
+        {
+          "id": "el-gallery-header",
+          "name": "Judul Seksi Galeri",
+          "type": "text",
+          "x": 50,
+          "y": 15,
+          "width": 500,
+          "height": 50,
+          "zIndex": 2,
+          "content": "Momen Indah Kami",
+          "styleOptions": {
+            "fontSize": 28,
+            "fontWeight": "bold",
+            "color": "#0f172a",
+            "textAlign": "center"
+          },
+          "animation": {
+            "entry": {
+              "type": "slide-up",
+              "duration": 0.7,
+              "delay": 0.1,
+              "easing": "ease-out",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "none",
+              "duration": 3
+            }
+          },
+          "hasInteraction": false,
+          "editable_appearance": false,
+          "editable_content": true,
+          "contentLabel": "Judul Seksi Galeri"
+        },
+        {
+          "id": "el-gallery-photo-1",
+          "name": "Foto Kenangan 1",
+          "type": "image",
+          "x": 28,
+          "y": 45,
+          "width": 170,
+          "height": 220,
+          "zIndex": 3,
+          "mediaUrl": "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=600&q=80",
+          "styleOptions": {
+            "borderRadius": 16,
+            "shadow": "lg"
+          },
+          "animation": {
+            "entry": {
+              "type": "zoom-in",
+              "duration": 0.8,
+              "delay": 0.2,
+              "easing": "spring",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "float",
+              "duration": 4
+            }
+          },
+          "hasInteraction": true,
+          "interaction": {
+            "type": "image",
+            "title": "Kencan Pertama",
+            "content": "Hari di mana semuanya berawal dengan secangkir kopi hangat.",
+            "mediaUrl": "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=1200&q=80"
+          },
+          "editable_appearance": true,
+          "appearanceLabel": "Foto Galeri 1",
+          "editable_content": true,
+          "contentLabel": "Keterangan Foto Galeri 1"
+        },
+        {
+          "id": "el-gallery-photo-2",
+          "name": "Foto Kenangan 2",
+          "type": "image",
+          "x": 50,
+          "y": 45,
+          "width": 170,
+          "height": 220,
+          "zIndex": 3,
+          "mediaUrl": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=600&q=80",
+          "styleOptions": {
+            "borderRadius": 16,
+            "shadow": "lg"
+          },
+          "animation": {
+            "entry": {
+              "type": "zoom-in",
+              "duration": 0.8,
+              "delay": 0.35,
+              "easing": "spring",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "sway",
+              "duration": 5
+            }
+          },
+          "hasInteraction": true,
+          "interaction": {
+            "type": "image",
+            "title": "Matahari Terbenam Bersamamu",
+            "content": "Menikmati senja di tepi pantai sambil merajut mimpi masa depan.",
+            "mediaUrl": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1200&q=80"
+          },
+          "editable_appearance": true,
+          "appearanceLabel": "Foto Galeri 2",
+          "editable_content": true,
+          "contentLabel": "Keterangan Foto Galeri 2"
+        },
+        {
+          "id": "el-gallery-photo-3",
+          "name": "Foto Kenangan 3",
+          "type": "image",
+          "x": 72,
+          "y": 45,
+          "width": 170,
+          "height": 220,
+          "zIndex": 3,
+          "mediaUrl": "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=600&q=80",
+          "styleOptions": {
+            "borderRadius": 16,
+            "shadow": "lg"
+          },
+          "animation": {
+            "entry": {
+              "type": "zoom-in",
+              "duration": 0.8,
+              "delay": 0.5,
+              "easing": "spring",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "float",
+              "duration": 4.5
+            }
+          },
+          "hasInteraction": true,
+          "interaction": {
+            "type": "image",
+            "title": "Hari Lamaran",
+            "content": "Dan dia berkata \"Ya\". Langkah awal menuju janji suci selamanya.",
+            "mediaUrl": "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=1200&q=80"
+          },
+          "editable_appearance": true,
+          "appearanceLabel": "Foto Galeri 3",
+          "editable_content": true,
+          "contentLabel": "Keterangan Foto Galeri 3"
+        }
+      ]
+    },
+    {
+      "id": "page-rsvp",
+      "title": "Doa Restu & Konfirmasi Kehadiran",
+      "order": 5,
+      "minHeight": "100vh",
+      "background": {
+        "type": "gradient",
+        "value": "linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #fef3c7 100%)"
+      },
+      "elements": [
+        {
+          "id": "el-rsvp-header",
+          "name": "Judul Seksi RSVP",
+          "type": "text",
+          "x": 50,
+          "y": 20,
+          "width": 500,
+          "height": 60,
+          "zIndex": 2,
+          "content": "Konfirmasi Kehadiran",
+          "styleOptions": {
+            "fontSize": 28,
+            "fontWeight": "bold",
+            "color": "#0f172a",
+            "textAlign": "center"
+          },
+          "animation": {
+            "entry": {
+              "type": "slide-up",
+              "duration": 0.7,
+              "delay": 0.1,
+              "easing": "ease-out",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "none",
+              "duration": 3
+            }
+          },
+          "hasInteraction": false,
+          "editable_appearance": false,
+          "editable_content": true,
+          "contentLabel": "Judul Seksi RSVP"
+        },
+        {
+          "id": "el-rsvp-desc",
+          "name": "Pesan Pembuka RSVP",
+          "type": "text",
+          "x": 50,
+          "y": 35,
+          "width": 560,
+          "height": 80,
+          "zIndex": 2,
+          "content": "Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir dan memberikan doa restu kepada kami.",
+          "styleOptions": {
+            "fontSize": 14,
+            "fontWeight": "normal",
+            "color": "#475569",
+            "textAlign": "center"
+          },
+          "animation": {
+            "entry": {
+              "type": "fade-in",
+              "duration": 0.8,
+              "delay": 0.25,
+              "easing": "ease-out",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "none",
+              "duration": 3
+            }
+          },
+          "hasInteraction": false,
+          "editable_appearance": false,
+          "editable_content": true,
+          "contentLabel": "Teks Permohonan Kehadiran"
+        },
+        {
+          "id": "el-rsvp-btn",
+          "name": "Tombol Buka Form RSVP",
+          "type": "button",
+          "x": 50,
+          "y": 55,
+          "width": 260,
+          "height": 52,
+          "zIndex": 3,
+          "content": "Isi Konfirmasi Kehadiran (RSVP) ➔",
+          "styleOptions": {
+            "fontSize": 14,
+            "fontWeight": "bold",
+            "color": "#ffffff",
+            "backgroundColor": "#059669",
+            "textAlign": "center",
+            "borderRadius": 16,
+            "shadow": "lg"
+          },
+          "animation": {
+            "entry": {
+              "type": "bounce-in",
+              "duration": 0.8,
+              "delay": 0.4,
+              "easing": "bounce",
+              "trigger": "scroll_reveal"
+            },
+            "idle": {
+              "type": "pulse",
+              "duration": 2.5
+            }
+          },
+          "hasInteraction": true,
+          "interaction": {
+            "type": "rsvp",
+            "title": "Konfirmasi Kehadiran & Doa Restu",
+            "content": "Silakan isi konfirmasi kehadiran Anda beserta ucapan doa terbaik."
+          },
+          "editable_appearance": false,
+          "editable_content": true,
+          "contentLabel": "Pesan Form RSVP"
+        }
+      ]
+    }
+  ],
+  "rsvps": []
+}

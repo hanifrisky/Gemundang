@@ -12,7 +12,22 @@ export const DEFAULT_VERTICAL_SCROLL_PROJECT: VerticalScrollProject = {
     primaryColor: '#d97706',
     accentColor: '#e11d48',
     showScrollIndicator: true,
-    smoothScroll: true
+    smoothScroll: true,
+    stageWidth: 800,
+    layoutMode: 'fluid',
+    fixedAlign: 'center',
+    globalBackground: {
+      type: 'gradient',
+      value: 'linear-gradient(180deg, #ffffff 0%, #fffbeb 55%, #f8fafc 100%)',
+      overlayOpacity: 0,
+      backgroundPosition: 'center'
+    },
+    outerBackdrop: {
+      type: 'image',
+      value: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1600&q=80',
+      overlayOpacity: 0.45,
+      backgroundPosition: 'center'
+    }
   },
   pages: [
     // Page 1: Hero / Cover (Soft White & Warm Ivory Gradient)
@@ -21,6 +36,7 @@ export const DEFAULT_VERTICAL_SCROLL_PROJECT: VerticalScrollProject = {
       title: 'Halaman Utama (Cover)',
       order: 1,
       minHeight: '100vh',
+      useGlobalBackground: false,
       background: {
         type: 'gradient',
         value: 'linear-gradient(135deg, #ffffff 0%, #fffbeb 55%, #fef3c7 100%)',
@@ -172,12 +188,13 @@ export const DEFAULT_VERTICAL_SCROLL_PROJECT: VerticalScrollProject = {
       ]
     },
 
-    // Page 2: Profil Pasangan (Pure White)
+    // Page 2: Profil Pasangan
     {
       id: 'page-couple',
       title: 'Profil Mempelai',
       order: 2,
       minHeight: '100vh',
+      useGlobalBackground: true,
       background: {
         type: 'color',
         value: '#ffffff'
@@ -518,12 +535,13 @@ export const DEFAULT_VERTICAL_SCROLL_PROJECT: VerticalScrollProject = {
       ]
     },
 
-    // Page 4: Galeri Kenangan (Clean White)
+    // Page 4: Galeri Kenangan
     {
       id: 'page-gallery',
       title: 'Galeri Foto Kenangan',
       order: 4,
       minHeight: '100vh',
+      useGlobalBackground: true,
       background: {
         type: 'color',
         value: '#ffffff'

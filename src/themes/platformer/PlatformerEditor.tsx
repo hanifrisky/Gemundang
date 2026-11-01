@@ -464,25 +464,25 @@ export default function PlatformerEditor({
   const selectedPlatform = project.world.platforms.find(p => p.id === selectedPlatformId);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-[#F4F8F5] text-[#1C2E24] flex flex-col">
       {/* TOP HEADER & ACTION BAR */}
-      <header className="min-h-16 h-auto border-b border-slate-800 bg-slate-900/90 backdrop-blur px-3 py-2.5 sm:px-4 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+      <header className="min-h-16 h-auto border-b border-[#E2EDE6] bg-white/95 backdrop-blur px-3 py-2.5 sm:px-4 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
         <div className="flex items-center gap-2 sm:gap-3 max-w-[50%] sm:max-w-none">
           <Link
             href="/"
-            className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+            className="p-1.5 sm:p-2 rounded-full bg-[#F4F8F5] hover:bg-[#E8F3ED] text-[#1C2E24] border border-[#D2E5DA] transition"
             title="Kembali ke Dashboard"
           >
             <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </Link>
           <div className="truncate">
             <div className="flex items-center gap-1.5 truncate">
-              <span className="font-bold text-white text-sm sm:text-base truncate">{project.title}</span>
-              <span className="hidden sm:inline text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 shrink-0">
+              <span className="font-serif font-bold text-[#1C2E24] text-sm sm:text-base truncate">{project.title}</span>
+              <span className="hidden sm:inline text-[11px] px-2.5 py-0.5 rounded-full bg-[#E8F3ED] text-[#2D5A43] border border-[#D2E5DA] font-semibold shrink-0">
                 slug: {project.slug}
               </span>
             </div>
-            <p className="text-[10px] sm:text-xs text-slate-400 truncate">Platformer Level & World Editor</p>
+            <p className="text-[10px] sm:text-xs text-[#5A7765] truncate">Platformer Level &amp; World Editor</p>
           </div>
         </div>
 
@@ -491,10 +491,10 @@ export default function PlatformerEditor({
           {/* Instant Test Play Mode Toggle */}
           <button
             onClick={() => setIsTestPlayMode(!isTestPlayMode)}
-            className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-lg cursor-pointer ${
+            className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer ${
               isTestPlayMode
                 ? 'bg-rose-600 hover:bg-rose-500 text-white animate-pulse'
-                : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                : 'bg-[#2D5A43] hover:bg-[#234734] text-white'
             }`}
           >
             {isTestPlayMode ? (
@@ -515,10 +515,10 @@ export default function PlatformerEditor({
           {/* Direct Link to Template Mode */}
           <Link
             href={`/template/${project.slug}`}
-            className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1 sm:gap-1.5 transition"
+            className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full bg-white hover:bg-[#F4F8F5] border border-[#D2E5DA] text-[#1C2E24] text-xs font-semibold flex items-center gap-1 sm:gap-1.5 transition"
             title="Buka Formulir Mode Template"
           >
-            <Edit3 className="w-3.5 h-3.5 text-sky-400" />
+            <Edit3 className="w-3.5 h-3.5 text-[#2D5A43]" />
             <span className="hidden sm:inline">Template</span>
           </Link>
 
@@ -526,30 +526,30 @@ export default function PlatformerEditor({
           <Link
             href={`/view/${project.slug}`}
             target="_blank"
-            className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1 sm:gap-1.5 transition"
+            className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full bg-white hover:bg-[#F4F8F5] border border-[#D2E5DA] text-[#1C2E24] text-xs font-semibold flex items-center gap-1 sm:gap-1.5 transition"
             title="Buka Undangan Tamu Fullscreen"
           >
-            <Eye className="w-3.5 h-3.5 text-emerald-400" />
+            <Eye className="w-3.5 h-3.5 text-[#2D5A43]" />
             <span className="hidden sm:inline">View</span>
-            <ExternalLink className="w-3 h-3 text-slate-400 hidden sm:inline" />
+            <ExternalLink className="w-3 h-3 text-[#5A7765] hidden sm:inline" />
           </Link>
 
           {/* Versioning Actions */}
           <button
             type="button"
             onClick={() => setIsHistoryModalOpen(true)}
-            className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full bg-white hover:bg-[#F4F8F5] border border-[#D2E5DA] text-[#1C2E24] text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
             title="Buka Riwayat Versi & Rollback"
           >
-            <History className="w-3.5 h-3.5 text-amber-400" />
+            <History className="w-3.5 h-3.5 text-[#2D5A43]" />
             <span className="hidden sm:inline">Versi:</span>
-            <span className="font-mono text-amber-300">v{activeVersionNumber}</span>
+            <span className="font-mono text-[#2D5A43] font-bold">v{activeVersionNumber}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsSaveVersionModalOpen(true)}
-            className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full bg-white hover:bg-[#F4F8F5] border border-[#D2E5DA] text-[#2D5A43] text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
             title="Simpan sebagai Versi Baru Bernama"
           >
             <BookmarkPlus className="w-3.5 h-3.5" />
@@ -560,7 +560,7 @@ export default function PlatformerEditor({
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg transition cursor-pointer"
+            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[#2D5A43] hover:bg-[#234734] disabled:opacity-50 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-[#2D5A43]/20 transition cursor-pointer"
           >
             <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span>{isSaving ? 'Menyimpan...' : 'Simpan'}</span>
@@ -570,14 +570,14 @@ export default function PlatformerEditor({
 
       {/* MOBILE VIEW SWITCHER (VISIBLE ON SCREENS < 1024px) */}
       {!isTestPlayMode && (
-        <div className="lg:hidden bg-slate-900 border-b border-slate-800 px-3 py-2 flex items-center justify-center gap-2 shrink-0">
+        <div className="lg:hidden bg-white border-b border-[#E2EDE6] px-3 py-2 flex items-center justify-center gap-2 shrink-0">
           <button
             type="button"
             onClick={() => setMobileEditorTab('canvas')}
-            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+            className={`flex-1 py-1.5 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
               mobileEditorTab === 'canvas'
-                ? 'bg-amber-500 text-slate-950 shadow'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                ? 'bg-[#2D5A43] text-white shadow'
+                : 'bg-[#F4F8F5] text-[#5A7765] hover:bg-[#E8F3ED]'
             }`}
           >
             <Sliders className="w-3.5 h-3.5" />
@@ -586,10 +586,10 @@ export default function PlatformerEditor({
           <button
             type="button"
             onClick={() => setMobileEditorTab('inspector')}
-            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+            className={`flex-1 py-1.5 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
               mobileEditorTab === 'inspector'
-                ? 'bg-amber-500 text-slate-950 shadow'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                ? 'bg-[#2D5A43] text-white shadow'
+                : 'bg-[#F4F8F5] text-[#5A7765] hover:bg-[#E8F3ED]'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />

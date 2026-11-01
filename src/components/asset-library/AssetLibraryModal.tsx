@@ -212,30 +212,32 @@ export default function AssetLibraryModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in">
-      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in">
+      <div className="relative w-full max-w-2xl bg-white border border-[#D2E5DA] rounded-3xl shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden text-[#1C2E24]">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-slate-800 bg-slate-950/60">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-[#E2EDE6] bg-[#F4F8F5]">
           <div className="flex items-center gap-2.5">
-            <Sparkles className="w-5 h-5 text-amber-400" />
-            <h3 className="font-bold text-sm sm:text-base md:text-lg text-white">{title}</h3>
+            <div className="p-2 rounded-xl bg-[#E8F3ED] text-[#2D5A43] border border-[#D2E5DA]">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-sm sm:text-base md:text-lg text-[#1C2E24]">{title}</h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+            className="p-1.5 rounded-full hover:bg-white text-[#5A7765] hover:text-[#1C2E24] transition cursor-pointer border border-transparent hover:border-[#D2E5DA]"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Top Mode Tabs */}
-        <div className="flex border-b border-slate-800 px-3 sm:px-6 pt-2.5 sm:pt-3 gap-3 sm:gap-6 text-xs md:text-sm overflow-x-auto scrollbar-none">
+        <div className="flex border-b border-[#E2EDE6] px-3 sm:px-6 pt-2.5 sm:pt-3 gap-3 sm:gap-6 text-xs md:text-sm overflow-x-auto scrollbar-none bg-[#FBFDFB]">
           <button
             onClick={() => setActiveTab('presets')}
             className={`pb-2.5 sm:pb-3 font-semibold transition border-b-2 cursor-pointer flex items-center gap-1.5 shrink-0 ${
               activeTab === 'presets'
-                ? 'border-amber-400 text-amber-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-[#2D5A43] text-[#2D5A43]'
+                : 'border-transparent text-[#5A7765] hover:text-[#1C2E24]'
             }`}
           >
             <Sparkles className="w-4 h-4" />
@@ -246,8 +248,8 @@ export default function AssetLibraryModal({
             onClick={() => setActiveTab('upload')}
             className={`pb-2.5 sm:pb-3 font-semibold transition border-b-2 flex items-center gap-1.5 cursor-pointer shrink-0 ${
               activeTab === 'upload'
-                ? 'border-amber-400 text-amber-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-[#2D5A43] text-[#2D5A43]'
+                : 'border-transparent text-[#5A7765] hover:text-[#1C2E24]'
             }`}
           >
             <Upload className="w-4 h-4" />
@@ -258,8 +260,8 @@ export default function AssetLibraryModal({
             onClick={() => setActiveTab('url')}
             className={`pb-2.5 sm:pb-3 font-semibold transition border-b-2 flex items-center gap-1.5 cursor-pointer shrink-0 ${
               activeTab === 'url'
-                ? 'border-amber-400 text-amber-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'border-[#2D5A43] text-[#2D5A43]'
+                : 'border-transparent text-[#5A7765] hover:text-[#1C2E24]'
             }`}
           >
             <LinkIcon className="w-4 h-4" />
@@ -274,7 +276,7 @@ export default function AssetLibraryModal({
             <div className="space-y-4">
               {/* Category Filter Chips */}
               <div className="flex items-center gap-1.5 text-xs overflow-x-auto scrollbar-none pb-1">
-                <span className="text-slate-400 text-[11px] mr-1">Filter Kategori:</span>
+                <span className="text-[#5A7765] text-[11px] mr-1">Filter Kategori:</span>
                 {categoryTabs.map(cat => {
                   const Icon = cat.icon;
                   const isActive = selectedCategory === cat.id;
@@ -283,10 +285,10 @@ export default function AssetLibraryModal({
                       key={cat.id}
                       type="button"
                       onClick={() => setSelectedCategory(cat.id)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition cursor-pointer border ${
                         isActive
-                          ? 'bg-amber-500 text-slate-950 font-bold'
-                          : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                          ? 'bg-[#2D5A43] text-white border-[#2D5A43] font-bold shadow-sm'
+                          : 'bg-[#F4F8F5] text-[#5A7765] border-[#D2E5DA] hover:text-[#1C2E24] hover:bg-[#E8F3ED]'
                       }`}
                     >
                       <Icon className="w-3 h-3" />
@@ -307,20 +309,20 @@ export default function AssetLibraryModal({
                         onSelectSprite(sprite);
                         onClose();
                       }}
-                      className="group relative cursor-pointer p-3.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-amber-400 transition flex flex-col items-center text-center space-y-2.5 shadow-md"
+                      className="group relative cursor-pointer p-3.5 rounded-2xl bg-[#FBFDFB] hover:bg-[#F4F8F5] border border-[#E2EDE6] hover:border-[#2D5A43]/50 transition flex flex-col items-center text-center space-y-2.5 shadow-sm"
                     >
                       {/* Preview Container with Live Animation */}
-                      <div className="relative w-full h-24 bg-slate-950/80 rounded-lg flex items-center justify-center p-2 border border-slate-800 overflow-hidden">
+                      <div className="relative w-full h-24 bg-[#F4F8F5] rounded-xl flex items-center justify-center p-2 border border-[#E2EDE6] overflow-hidden">
                         <AnimatedSpriteThumbnail sprite={sprite} />
 
                         {/* Top-Right Badge: SEQUENCE vs STATIC */}
                         {isSeq ? (
-                          <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-indigo-600/90 text-indigo-100 shadow flex items-center gap-1 backdrop-blur-xs tracking-wider">
+                          <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-[#2D5A43] text-white shadow flex items-center gap-1 backdrop-blur-xs tracking-wider">
                             <Film className="w-2.5 h-2.5" />
                             SEQUENCE
                           </span>
                         ) : (
-                          <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-slate-700/90 text-slate-200 shadow flex items-center gap-1 backdrop-blur-xs tracking-wider">
+                          <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-[#5A7765] text-white shadow flex items-center gap-1 backdrop-blur-xs tracking-wider">
                             <ImageIcon className="w-2.5 h-2.5" />
                             STATIC
                           </span>
@@ -328,31 +330,31 @@ export default function AssetLibraryModal({
                       </div>
 
                       <div className="w-full space-y-1">
-                        <h4 className="text-xs font-bold text-slate-200 group-hover:text-amber-300 truncate" title={sprite.name}>
+                        <h4 className="text-xs font-bold text-[#1C2E24] group-hover:text-[#2D5A43] truncate" title={sprite.name}>
                           {sprite.name}
                         </h4>
 
                         {/* Badges: Marker Type & Category */}
                         <div className="flex flex-wrap items-center justify-center gap-1">
                           {isSeq ? (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-semibold flex items-center gap-1">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#E8F3ED] border border-[#D2E5DA] text-[#2D5A43] font-semibold flex items-center gap-1">
                               <Play className="w-2 h-2 fill-current" />
                               {sprite.frames.length} Frame ({sprite.frameRate || 4} FPS)
                             </span>
                           ) : (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold flex items-center gap-1">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#E8F3ED] border border-[#D2E5DA] text-[#2D5A43] font-semibold flex items-center gap-1">
                               <ImageIcon className="w-2 h-2" />
                               Static
                             </span>
                           )}
 
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-900 border border-slate-700 text-slate-400 font-medium">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white border border-[#D2E5DA] text-[#5A7765] font-medium">
                             {formatCategoryBadge(sprite.category)}
                           </span>
                         </div>
                       </div>
 
-                      <button className="w-full py-1 text-xs font-semibold rounded-lg bg-slate-700 group-hover:bg-amber-500 group-hover:text-slate-950 text-slate-300 transition flex items-center justify-center gap-1 cursor-pointer">
+                      <button className="w-full py-1.5 text-xs font-semibold rounded-xl bg-[#E8F3ED] group-hover:bg-[#2D5A43] group-hover:text-white text-[#2D5A43] transition flex items-center justify-center gap-1 cursor-pointer">
                         <Check className="w-3.5 h-3.5" />
                         Pilih
                       </button>
@@ -367,7 +369,7 @@ export default function AssetLibraryModal({
           {activeTab === 'upload' && (
             <div className="space-y-5 max-w-lg mx-auto">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#446050] mb-1">
                   Nama Aset
                 </label>
                 <input
@@ -375,12 +377,12 @@ export default function AssetLibraryModal({
                   value={customName}
                   onChange={e => setCustomName(e.target.value)}
                   placeholder="Contoh: Tokoh Penghulu / Tekstur Kayu / Latar Resepsi"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400"
+                  className="w-full px-3 py-2 rounded-xl bg-[#FBFDFB] border border-[#D2E5DA] text-[#1C2E24] text-sm focus:outline-none focus:border-[#2D5A43]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#446050] mb-1">
                   Format Animasi / Gambar (Pilih Tipe Aset)
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -392,8 +394,8 @@ export default function AssetLibraryModal({
                     }}
                     className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
                       customType === 'static'
-                        ? 'border-emerald-400 bg-emerald-500/15 text-emerald-300 shadow-sm'
-                        : 'border-slate-700 bg-slate-800 text-slate-400 hover:text-white'
+                        ? 'border-[#2D5A43] bg-[#E8F3ED] text-[#2D5A43] shadow-sm'
+                        : 'border-[#D2E5DA] bg-[#FBFDFB] text-[#5A7765] hover:text-[#1C2E24]'
                     }`}
                   >
                     <ImageIcon className="w-4 h-4" />
@@ -404,8 +406,8 @@ export default function AssetLibraryModal({
                     onClick={() => setCustomType('sequence')}
                     className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
                       customType === 'sequence'
-                        ? 'border-indigo-400 bg-indigo-500/15 text-indigo-300 shadow-sm'
-                        : 'border-slate-700 bg-slate-800 text-slate-400 hover:text-white'
+                        ? 'border-[#2D5A43] bg-[#E8F3ED] text-[#2D5A43] shadow-sm'
+                        : 'border-[#D2E5DA] bg-[#FBFDFB] text-[#5A7765] hover:text-[#1C2E24]'
                     }`}
                   >
                     <Film className="w-4 h-4" />
@@ -417,7 +419,7 @@ export default function AssetLibraryModal({
               {customType === 'sequence' && (
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs font-semibold text-slate-300">
+                    <label className="text-xs font-semibold text-[#446050]">
                       Kecepatan Animasi: {customFps} FPS (Frame/Detik)
                     </label>
                   </div>
@@ -427,24 +429,24 @@ export default function AssetLibraryModal({
                     max={24}
                     value={customFps}
                     onChange={e => setCustomFps(parseInt(e.target.value))}
-                    className="w-full accent-amber-400 cursor-pointer"
+                    className="w-full accent-[#2D5A43] cursor-pointer"
                   />
                 </div>
               )}
 
               {/* Upload Drop Area */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold text-[#446050] mb-1.5">
                   {customType === 'static'
                     ? 'Pilih File Gambar (PNG/JPG/SVG/WebP)'
                     : 'Pilih Beberapa Gambar Berurutan (Frame 1, 2, 3...)'}
                 </label>
-                <label className="border-2 border-dashed border-slate-700 hover:border-amber-400 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer bg-slate-800/40 hover:bg-slate-800/80 transition group">
-                  <Upload className="w-8 h-8 text-slate-400 group-hover:text-amber-400 mb-2 transition" />
-                  <span className="text-xs font-semibold text-slate-300 group-hover:text-white">
+                <label className="border-2 border-dashed border-[#D2E5DA] hover:border-[#2D5A43] rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer bg-[#F4F8F5] hover:bg-[#E8F3ED] transition group">
+                  <Upload className="w-8 h-8 text-[#5A7765] group-hover:text-[#2D5A43] mb-2 transition" />
+                  <span className="text-xs font-semibold text-[#1C2E24] group-hover:text-[#2D5A43]">
                     Klik untuk memilih file dari komputer
                   </span>
-                  <span className="text-[10px] text-slate-500 mt-1">
+                  <span className="text-[10px] text-[#5A7765] mt-1">
                     {customType === 'sequence'
                       ? 'Dapat memilih banyak file sekaligus untuk dianimasikan berurutan'
                       : 'Mendukung PNG transparan, WebP, JPG, SVG'}
@@ -461,19 +463,19 @@ export default function AssetLibraryModal({
 
               {/* Uploaded Frames & Preview */}
               {customFrames.length > 0 && (
-                <div className="space-y-3 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                <div className="space-y-3 bg-[#F4F8F5] p-3 rounded-2xl border border-[#D2E5DA]">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-200">
+                      <span className="font-semibold text-[#1C2E24]">
                         Pratinjau ({customFrames.length} gambar)
                       </span>
                       {customType === 'sequence' ? (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#E8F3ED] text-[#2D5A43] border border-[#D2E5DA] flex items-center gap-1">
                           <Film className="w-2.5 h-2.5" />
                           SEQUENCE ({customFps} FPS)
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#E8F3ED] text-[#2D5A43] border border-[#D2E5DA] flex items-center gap-1">
                           <ImageIcon className="w-2.5 h-2.5" />
                           STATIC
                         </span>
@@ -482,7 +484,7 @@ export default function AssetLibraryModal({
                     <button
                       type="button"
                       onClick={() => setCustomFrames([])}
-                      className="text-rose-400 hover:underline cursor-pointer text-xs"
+                      className="text-rose-600 hover:underline cursor-pointer text-xs"
                     >
                       Hapus Semua
                     </button>
@@ -490,7 +492,7 @@ export default function AssetLibraryModal({
 
                   {/* Animated sequence player */}
                   {customType === 'sequence' && (
-                    <div className="w-full h-28 bg-slate-950 rounded-lg flex items-center justify-center p-2 border border-slate-800">
+                    <div className="w-full h-28 bg-white rounded-xl flex items-center justify-center p-2 border border-[#D2E5DA]">
                       <img
                         src={customFrames[activeUploadFrame] || customFrames[0]}
                         alt="Sequence Preview"
@@ -504,10 +506,10 @@ export default function AssetLibraryModal({
                     {customFrames.map((frame, i) => (
                       <div
                         key={i}
-                        className={`relative w-14 h-14 shrink-0 rounded-lg bg-slate-950 border p-1 flex items-center justify-center ${
+                        className={`relative w-14 h-14 shrink-0 rounded-xl bg-white border p-1 flex items-center justify-center ${
                           customType === 'sequence' && activeUploadFrame === i
-                            ? 'border-indigo-400'
-                            : 'border-slate-800'
+                            ? 'border-[#2D5A43] ring-1 ring-[#2D5A43]'
+                            : 'border-[#D2E5DA]'
                         }`}
                       >
                         <img
@@ -515,7 +517,7 @@ export default function AssetLibraryModal({
                           alt={`Frame ${i + 1}`}
                           className="max-h-full max-w-full object-contain"
                         />
-                        <span className="absolute bottom-0.5 right-1 text-[8px] bg-slate-800/90 text-amber-300 px-1 rounded font-mono">
+                        <span className="absolute bottom-0.5 right-1 text-[8px] bg-[#E8F3ED] text-[#2D5A43] px-1 rounded font-mono font-bold">
                           #{i + 1}
                         </span>
                       </div>
@@ -528,7 +530,7 @@ export default function AssetLibraryModal({
                 type="button"
                 disabled={customFrames.length === 0}
                 onClick={handleSaveCustomSprite}
-                className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold transition shadow-lg text-sm flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-full bg-[#2D5A43] hover:bg-[#234734] disabled:bg-[#D2E5DA] disabled:text-[#5A7765] text-white font-semibold transition shadow-md shadow-[#2D5A43]/20 text-sm flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 Gunakan Aset Ini
@@ -540,7 +542,7 @@ export default function AssetLibraryModal({
           {activeTab === 'url' && (
             <div className="space-y-4 max-w-lg mx-auto">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#446050] mb-1">
                   Nama Aset (Opsional)
                 </label>
                 <input
@@ -548,12 +550,12 @@ export default function AssetLibraryModal({
                   value={directUrlName}
                   onChange={e => setDirectUrlName(e.target.value)}
                   placeholder="Contoh: Background Gunung Unsplash"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400"
+                  className="w-full px-3 py-2 rounded-xl bg-[#FBFDFB] border border-[#D2E5DA] text-[#1C2E24] text-sm focus:outline-none focus:border-[#2D5A43]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-[#446050] mb-1">
                   URL / Tautan Gambar (https://... atau data:image/...)
                 </label>
                 <input
@@ -561,7 +563,7 @@ export default function AssetLibraryModal({
                   value={directUrl}
                   onChange={e => setDirectUrl(e.target.value)}
                   placeholder="https://images.unsplash.com/..."
-                  className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-400"
+                  className="w-full px-3 py-2 rounded-xl bg-[#FBFDFB] border border-[#D2E5DA] text-[#1C2E24] text-sm focus:outline-none focus:border-[#2D5A43]"
                 />
               </div>
 
@@ -569,13 +571,13 @@ export default function AssetLibraryModal({
               {directUrl.trim() && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Pratinjau Gambar:</span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                    <span className="text-[#5A7765]">Pratinjau Gambar:</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#E8F3ED] text-[#2D5A43] border border-[#D2E5DA] flex items-center gap-1">
                       <ImageIcon className="w-2.5 h-2.5" />
                       STATIC
                     </span>
                   </div>
-                  <div className="w-full h-40 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden p-2">
+                  <div className="w-full h-40 rounded-2xl bg-[#F4F8F5] border border-[#D2E5DA] flex items-center justify-center overflow-hidden p-2">
                     <img
                       src={directUrl}
                       alt="Pratinjau Gambar"
@@ -592,7 +594,7 @@ export default function AssetLibraryModal({
                 type="button"
                 disabled={!directUrl.trim()}
                 onClick={handleUseDirectUrl}
-                className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-bold transition shadow-lg text-sm flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-full bg-[#2D5A43] hover:bg-[#234734] disabled:bg-[#D2E5DA] disabled:text-[#5A7765] text-white font-semibold transition shadow-md shadow-[#2D5A43]/20 text-sm flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Check className="w-4 h-4" />
                 Gunakan URL Gambar Ini

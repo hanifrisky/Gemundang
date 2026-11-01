@@ -11,19 +11,25 @@ export default function AccessNotice({ status }: { status: 'unauthenticated' | '
   }[status];
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-slate-200">
-      <div className="max-w-sm text-center space-y-4 bg-slate-900 border border-slate-800 rounded-3xl p-8">
+    <div className="min-h-screen bg-[#F4F8F5] flex items-center justify-center p-6 text-[#1C2E24]">
+      <div className="max-w-sm w-full text-center space-y-4 bg-white border border-[#E2EDE6] rounded-3xl p-8 shadow-xl shadow-[#2D5A43]/5">
         {status === 'not_found' ? (
-          <SearchX className="w-10 h-10 mx-auto text-slate-500" />
+          <div className="w-16 h-16 rounded-full bg-[#F4F8F5] flex items-center justify-center mx-auto text-[#5A7765]">
+            <SearchX className="w-8 h-8" />
+          </div>
         ) : (
-          <Lock className="w-10 h-10 mx-auto text-amber-400" />
+          <div className="w-16 h-16 rounded-full bg-[#E8F3ED] flex items-center justify-center mx-auto text-[#2D5A43]">
+            <Lock className="w-8 h-8" />
+          </div>
         )}
-        <h1 className="text-lg font-bold text-white">{content.title}</h1>
-        <p className="text-sm text-slate-400">{content.text}</p>
-        <div className="flex gap-2 justify-center">
-          <Link href="/" className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm">Beranda</Link>
+        <h1 className="text-xl font-serif font-bold text-[#1C2E24]">{content.title}</h1>
+        <p className="text-sm text-[#5A7765]">{content.text}</p>
+        <div className="flex gap-3 justify-center pt-2">
+          <Link href="/" className="px-5 py-2.5 rounded-full bg-[#F4F8F5] hover:bg-[#E8F3ED] text-sm font-medium text-[#1C2E24] border border-[#D2E5DA] transition">
+            Beranda
+          </Link>
           {status === 'unauthenticated' && (
-            <Link href="/login" className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm">
+            <Link href="/login" className="px-5 py-2.5 rounded-full bg-[#2D5A43] hover:bg-[#234734] text-white font-semibold text-sm shadow-md shadow-[#2D5A43]/20 transition">
               Login
             </Link>
           )}

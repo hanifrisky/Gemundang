@@ -1,10 +1,15 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { PageLayerElement, PageSection } from '@/types/verticalScroll';
+import {
+  PageLayerElement,
+  PageSection,
+  PageSectionBackground
+} from '@/types/verticalScroll';
 import {
   LayerElementVisual,
-  getPageStageHeight
+  getPageStageHeight,
+  buildBackgroundCSS
 } from '../runtime/LayerElementView';
 import {
   RotateCw,
@@ -13,9 +18,7 @@ import {
   Lock,
   Unlock,
   FlipHorizontal2,
-  Image as ImageIcon,
-  Type,
-  MousePointer
+  Image as ImageIcon
 } from 'lucide-react';
 
 type TransformMode =
@@ -29,6 +32,7 @@ type TransformMode =
 
 interface StagePageCanvasProps {
   page: PageSection;
+  effectiveBackground: PageSectionBackground;
   pageIndex: number;
   totalPages: number;
   stageWidth: number;
@@ -48,11 +52,11 @@ interface StagePageCanvasProps {
   onOpenAssetLibraryForElement: (pageId: string, elementId: string) => void;
   onDuplicateElement: (pageId: string, elementId: string) => void;
   onRemoveElement: (pageId: string, elementId: string) => void;
-  onAddElementToPage: (pageId: string, type: 'image' | 'text' | 'button') => void;
 }
 
 export default function StagePageCanvas({
   page,
+  effectiveBackground,
   pageIndex,
   totalPages,
   stageWidth,
@@ -67,8 +71,7 @@ export default function StagePageCanvas({
   onUpdateElement,
   onOpenAssetLibraryForElement,
   onDuplicateElement,
-  onRemoveElement,
-  onAddElementToPage
+  onRemoveElement
 }: StagePageCanvasProps) {
   const stageWrapperRef = useRef<HTMLDivElement | null>(null);
   const elementNodesRef = useRef<Record<string, HTMLDivElement | null>>({});
@@ -382,58 +385,36 @@ export default function StagePageCanvas({
       className="w-full flex flex-col items-center"
       style={{ maxWidth: `${stageWidth}px` }}
     >
-      {/* Per-page header bar */}
+      {/* Minimalist Artboard Caption */}
       <div className="w-full flex items-center justify-between text-xs mb-2 px-1">
         <div className="flex items-center gap-2 min-w-0">
           <span
-            className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${
+            className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] tracking-wide transition ${
               isActivePage
-                ? 'bg-indigo-500 text-white shadow'
-                : 'bg-slate-800 text-slate-400'
+                ? 'bg-[#2D5A43] text-white shadow-sm'
+                : 'bg-white/90 border border-[#D2E5DA] text-[#5A7765]'
             }`}
           >
             Hal {pageIndex + 1}/{totalPages}
           </span>
-          <span className="font-bold text-slate-200 truncate">{page.title}</span>
-          <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
-            ({stageWidth}×{stageHeight}px)
+          <span
+            className={`font-semibold truncate transition ${
+              isActivePage ? 'text-[#1C2E24]' : 'text-[#5A7765]'
+            }`}
+          >
+            {page.title}
           </span>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddElementToPage(page.id, 'image');
-            }}
-            className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[11px] font-semibold text-sky-400 flex items-center gap-1 transition cursor-pointer"
-            title="Tambah Gambar / Ornamen Bebas ke Halaman Ini"
-          >
-            <ImageIcon className="w-3 h-3" /> +Gambar
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddElementToPage(page.id, 'text');
-            }}
-            className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[11px] font-semibold text-amber-400 flex items-center gap-1 transition cursor-pointer"
-            title="Tambah Teks ke Halaman Ini"
-          >
-            <Type className="w-3 h-3" /> +Teks
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddElementToPage(page.id, 'button');
-            }}
-            className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-[11px] font-semibold text-emerald-400 flex items-center gap-1 transition cursor-pointer"
-            title="Tambah Tombol ke Halaman Ini"
-          >
-            <MousePointer className="w-3 h-3" /> +Tombol
-          </button>
+          {page.useGlobalBackground && (
+            <span className="px-2 py-0.5 rounded-full bg-[#E8F3ED] border border-[#D2E5DA] text-[#2D5A43] text-[9px] font-semibold">
+              Latar Utama
+            </span>
+          )}
+          <span className="text-[10px] text-[#5A7765] font-mono hidden sm:inline">
+            {stageWidth}×{stageHeight}px
+          </span>
         </div>
       </div>
 
@@ -447,8 +428,8 @@ export default function StagePageCanvas({
         }}
         className={`relative w-full rounded-2xl transition-shadow ${
           isActivePage
-            ? 'ring-2 ring-indigo-500/80 shadow-[0_20px_60px_rgba(0,0,0,0.65)]'
-            : 'ring-1 ring-slate-800 hover:ring-slate-700 shadow-xl'
+            ? 'ring-2 ring-[#2D5A43] shadow-[0_20px_50px_rgba(45,90,67,0.14)]'
+            : 'ring-1 ring-[#D2E5DA] hover:ring-[#2D5A43]/50 shadow-md'
         }`}
         style={{ height: `${effectiveHeight}px` }}
       >
@@ -460,24 +441,13 @@ export default function StagePageCanvas({
             }
           }}
           className="absolute inset-0 rounded-2xl overflow-hidden"
-          style={{
-            backgroundColor:
-              page.background.type === 'color' ? page.background.value : '#ffffff',
-            backgroundImage:
-              page.background.type === 'gradient'
-                ? page.background.value
-                : page.background.type === 'image'
-                ? `url(${page.background.value})`
-                : undefined,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
+          style={buildBackgroundCSS(effectiveBackground)}
         >
           {/* Background Overlay */}
-          {page.background.overlayOpacity && page.background.overlayOpacity > 0 ? (
+          {effectiveBackground.overlayOpacity && effectiveBackground.overlayOpacity > 0 ? (
             <div
               className="absolute inset-0 bg-black pointer-events-none"
-              style={{ opacity: page.background.overlayOpacity }}
+              style={{ opacity: effectiveBackground.overlayOpacity }}
             />
           ) : null}
 
@@ -516,12 +486,12 @@ export default function StagePageCanvas({
           {/* Empty Page Hint */}
           {page.elements.filter((el) => !el.hidden).length === 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 pointer-events-none">
-              <div className="bg-white/85 backdrop-blur-sm border border-slate-200/80 rounded-2xl px-5 py-3.5 shadow-sm max-w-sm">
-                <p className="text-sm font-semibold text-slate-700">
-                  Kanvas Halaman Kosong
+              <div className="bg-white/90 backdrop-blur-sm border border-[#D2E5DA] rounded-2xl px-5 py-3.5 shadow-sm max-w-xs">
+                <p className="text-sm font-serif font-bold text-[#1C2E24]">
+                  Halaman Kosong
                 </p>
-                <p className="text-xs text-slate-500 mt-1">
-                  Klik +Gambar, +Teks, atau +Tombol di atas, lalu geser, putar, dan atur skalanya sesuka hati di mana saja!
+                <p className="text-xs text-[#5A7765] mt-1">
+                  Klik tombol <b>(+)</b> di pojok kiri bawah untuk menambahkan teks, gambar, atau tombol.
                 </p>
               </div>
             </div>
@@ -614,11 +584,11 @@ export default function StagePageCanvas({
               className={`border-2 ${
                 selectedEl.locked
                   ? 'border-amber-400 border-dashed'
-                  : 'border-indigo-400'
-              } shadow-[0_0_0_1px_rgba(15,23,42,0.5)]`}
+                  : 'border-[#2D5A43]'
+              } shadow-[0_0_0_1px_rgba(45,90,67,0.35)]`}
             >
               {/* Z-Index & Lock Badge */}
-              <span className="absolute -top-2.5 right-1 bg-indigo-600 text-white font-bold text-[9px] px-1.5 py-0.2 rounded shadow">
+              <span className="absolute -top-2.5 right-1 bg-[#2D5A43] text-white font-bold text-[9px] px-1.5 py-0.2 rounded shadow">
                 z:{selectedEl.zIndex}
                 {selectedEl.locked ? ' 🔒' : ''}
               </span>
@@ -631,12 +601,12 @@ export default function StagePageCanvas({
                       type="button"
                       onPointerDown={(e) => beginTransform(e, selectedEl, 'rotate')}
                       style={{ touchAction: 'none' }}
-                      className="w-6 h-6 rounded-full bg-indigo-500 hover:bg-indigo-400 text-white border-2 border-white shadow-lg flex items-center justify-center cursor-grab active:cursor-grabbing pointer-events-auto transition-transform hover:scale-110"
+                      className="w-6 h-6 rounded-full bg-[#2D5A43] hover:bg-[#234735] text-white border-2 border-white shadow-lg flex items-center justify-center cursor-grab active:cursor-grabbing pointer-events-auto transition-transform hover:scale-110"
                       title="Tarik untuk Memutar (Rotasi) • Tahan Shift untuk kelipatan 15°"
                     >
                       <RotateCw className="w-3.5 h-3.5" />
                     </button>
-                    <div className="w-0.5 h-3 bg-indigo-400" />
+                    <div className="w-0.5 h-3 bg-[#2D5A43]" />
                   </div>
 
                   {/* 4 Corner Proportional Scale Handles */}
@@ -644,25 +614,25 @@ export default function StagePageCanvas({
                     onPointerDown={(e) => beginTransform(e, selectedEl, 'scale')}
                     style={{ touchAction: 'none' }}
                     title="Tarik sudut untuk mengatur Skala (Scale)"
-                    className="absolute -top-2 -left-2 w-3.5 h-3.5 rounded-full bg-white border-2 border-indigo-500 shadow-md cursor-nwse-resize pointer-events-auto hover:scale-125 transition-transform"
+                    className="absolute -top-2 -left-2 w-3.5 h-3.5 rounded-full bg-white border-2 border-[#2D5A43] shadow-md cursor-nwse-resize pointer-events-auto hover:scale-125 transition-transform"
                   />
                   <div
                     onPointerDown={(e) => beginTransform(e, selectedEl, 'scale')}
                     style={{ touchAction: 'none' }}
                     title="Tarik sudut untuk mengatur Skala (Scale)"
-                    className="absolute -top-2 -right-2 w-3.5 h-3.5 rounded-full bg-white border-2 border-indigo-500 shadow-md cursor-nesw-resize pointer-events-auto hover:scale-125 transition-transform"
+                    className="absolute -top-2 -right-2 w-3.5 h-3.5 rounded-full bg-white border-2 border-[#2D5A43] shadow-md cursor-nesw-resize pointer-events-auto hover:scale-125 transition-transform"
                   />
                   <div
                     onPointerDown={(e) => beginTransform(e, selectedEl, 'scale')}
                     style={{ touchAction: 'none' }}
                     title="Tarik sudut untuk mengatur Skala (Scale)"
-                    className="absolute -bottom-2 -left-2 w-3.5 h-3.5 rounded-full bg-white border-2 border-indigo-500 shadow-md cursor-nesw-resize pointer-events-auto hover:scale-125 transition-transform"
+                    className="absolute -bottom-2 -left-2 w-3.5 h-3.5 rounded-full bg-white border-2 border-[#2D5A43] shadow-md cursor-nesw-resize pointer-events-auto hover:scale-125 transition-transform"
                   />
                   <div
                     onPointerDown={(e) => beginTransform(e, selectedEl, 'scale')}
                     style={{ touchAction: 'none' }}
                     title="Tarik sudut untuk mengatur Skala (Scale)"
-                    className="absolute -bottom-2 -right-2 w-3.5 h-3.5 rounded-full bg-white border-2 border-indigo-500 shadow-md cursor-nwse-resize pointer-events-auto hover:scale-125 transition-transform"
+                    className="absolute -bottom-2 -right-2 w-3.5 h-3.5 rounded-full bg-white border-2 border-[#2D5A43] shadow-md cursor-nwse-resize pointer-events-auto hover:scale-125 transition-transform"
                   />
 
                   {/* 4 Side Box Width / Height Handles */}
@@ -670,25 +640,25 @@ export default function StagePageCanvas({
                     onPointerDown={(e) => beginTransform(e, selectedEl, 'resize-e')}
                     style={{ touchAction: 'none' }}
                     title="Tarik sisi kanan untuk mengatur Lebar Kotak (Width)"
-                    className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-2.5 h-5 rounded-full bg-white border border-indigo-500 shadow cursor-ew-resize pointer-events-auto hover:bg-indigo-100"
+                    className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-2.5 h-5 rounded-full bg-white border border-[#2D5A43] shadow cursor-ew-resize pointer-events-auto hover:bg-[#E8F3ED]"
                   />
                   <div
                     onPointerDown={(e) => beginTransform(e, selectedEl, 'resize-w')}
                     style={{ touchAction: 'none' }}
                     title="Tarik sisi kiri untuk mengatur Lebar Kotak (Width)"
-                    className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-2.5 h-5 rounded-full bg-white border border-indigo-500 shadow cursor-ew-resize pointer-events-auto hover:bg-indigo-100"
+                    className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-2.5 h-5 rounded-full bg-white border border-[#2D5A43] shadow cursor-ew-resize pointer-events-auto hover:bg-[#E8F3ED]"
                   />
                   <div
                     onPointerDown={(e) => beginTransform(e, selectedEl, 'resize-n')}
                     style={{ touchAction: 'none' }}
                     title="Tarik sisi atas untuk mengatur Tinggi Kotak (Height)"
-                    className="absolute -top-1.5 left-1/2 -translate-x-1/2 h-2.5 w-5 rounded-full bg-white border border-indigo-500 shadow cursor-ns-resize pointer-events-auto hover:bg-indigo-100"
+                    className="absolute -top-1.5 left-1/2 -translate-x-1/2 h-2.5 w-5 rounded-full bg-white border border-[#2D5A43] shadow cursor-ns-resize pointer-events-auto hover:bg-[#E8F3ED]"
                   />
                   <div
                     onPointerDown={(e) => beginTransform(e, selectedEl, 'resize-s')}
                     style={{ touchAction: 'none' }}
                     title="Tarik sisi bawah untuk mengatur Tinggi Kotak (Height)"
-                    className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-2.5 w-5 rounded-full bg-white border border-indigo-500 shadow cursor-ns-resize pointer-events-auto hover:bg-indigo-100"
+                    className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-2.5 w-5 rounded-full bg-white border border-[#2D5A43] shadow cursor-ns-resize pointer-events-auto hover:bg-[#E8F3ED]"
                   />
                 </>
               )}
@@ -709,21 +679,16 @@ export default function StagePageCanvas({
               onPointerDown={(e) => e.stopPropagation()}
             >
               {activeTransform ? (
-                <div className="px-3 py-1 rounded-full bg-slate-950/95 border border-indigo-400/70 text-indigo-200 font-mono text-[11px] font-bold shadow-2xl whitespace-nowrap">
+                <div className="px-3 py-1 rounded-full bg-[#1C2E24] border border-[#2D5A43] text-white font-mono text-[11px] font-bold shadow-2xl whitespace-nowrap">
                   {activeTransform.hudText}
                 </div>
               ) : (
-                <div className="flex items-center gap-1 px-2 py-1 rounded-xl bg-slate-900/95 border border-slate-700 shadow-2xl backdrop-blur text-[11px] whitespace-nowrap">
-                  <span className="font-mono text-[10px] text-slate-300 px-1.5 border-r border-slate-700">
-                    {Math.round(selectedEl.x)}%,{Math.round(selectedEl.y)}% • {Math.round(selRot)}° •{' '}
-                    {Math.round(selScale * 100)}%
-                  </span>
-
+                <div className="flex items-center gap-0.5 px-1.5 py-1 rounded-2xl bg-white/98 border border-[#D2E5DA] shadow-xl backdrop-blur text-[11px] whitespace-nowrap text-[#1C2E24]">
                   {selectedEl.type === 'image' && (
                     <button
                       type="button"
                       onClick={() => onOpenAssetLibraryForElement(page.id, selectedEl.id)}
-                      className="p-1 rounded-lg hover:bg-slate-800 text-sky-400 hover:text-sky-300 transition cursor-pointer"
+                      className="p-1.5 rounded-xl hover:bg-[#F4F8F5] text-[#2D5A43] transition cursor-pointer"
                       title="Ganti / Upload Gambar"
                     >
                       <ImageIcon className="w-3.5 h-3.5" />
@@ -738,8 +703,8 @@ export default function StagePageCanvas({
                         flipX: !selectedEl.flipX
                       });
                     }}
-                    className={`p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer ${
-                      selectedEl.flipX ? 'text-indigo-400' : 'text-slate-300'
+                    className={`p-1.5 rounded-xl transition cursor-pointer ${
+                      selectedEl.flipX ? 'text-[#2D5A43] bg-[#E8F3ED] font-bold' : 'text-[#5A7765] hover:text-[#1C2E24] hover:bg-[#F4F8F5]'
                     }`}
                     title="Cermin Horizontal (Flip X)"
                   >
@@ -749,7 +714,7 @@ export default function StagePageCanvas({
                   <button
                     type="button"
                     onClick={() => onDuplicateElement(page.id, selectedEl.id)}
-                    className="p-1 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition cursor-pointer"
+                    className="p-1.5 rounded-xl hover:bg-[#F4F8F5] text-[#5A7765] hover:text-[#1C2E24] transition cursor-pointer"
                     title="Duplikat Elemen"
                   >
                     <Copy className="w-3.5 h-3.5" />
@@ -762,8 +727,8 @@ export default function StagePageCanvas({
                         locked: !selectedEl.locked
                       })
                     }
-                    className={`p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer ${
-                      selectedEl.locked ? 'text-amber-400' : 'text-slate-300'
+                    className={`p-1.5 rounded-xl transition cursor-pointer ${
+                      selectedEl.locked ? 'text-[#2D5A43] bg-[#E8F3ED] font-bold' : 'text-[#5A7765] hover:text-[#1C2E24] hover:bg-[#F4F8F5]'
                     }`}
                     title={selectedEl.locked ? 'Buka Kunci Posisi' : 'Kunci Posisi Elemen'}
                   >
@@ -778,7 +743,7 @@ export default function StagePageCanvas({
                     <button
                       type="button"
                       onClick={() => onRemoveElement(page.id, selectedEl.id)}
-                      className="p-1 rounded-lg hover:bg-rose-500/20 text-rose-400 transition cursor-pointer"
+                      className="p-1.5 rounded-xl hover:bg-rose-50 text-rose-500 transition cursor-pointer"
                       title="Hapus Elemen"
                     >
                       <Trash2 className="w-3.5 h-3.5" />

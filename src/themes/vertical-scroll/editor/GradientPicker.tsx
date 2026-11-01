@@ -550,10 +550,10 @@ export default function GradientPicker({
   const livePreviewCss = serializeCssGradient(grad);
 
   return (
-    <div className="space-y-3 p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
+    <div className="space-y-3 p-2.5 rounded-xl bg-[#F4F8F5] border border-[#E2EDE6] text-[#1C2E24]">
       {/* 1. MODE SELECTOR (LINEAR VS RADIAL) & LIVE PREVIEW SWATCH */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[11px] font-bold flex-1">
+        <div className="flex bg-white p-0.5 rounded-lg border border-[#D2E5DA] text-[11px] font-bold flex-1">
           <button
             type="button"
             onClick={() => {
@@ -562,8 +562,8 @@ export default function GradientPicker({
             }}
             className={`flex-1 py-1 rounded-md transition cursor-pointer ${
               grad.mode === 'linear'
-                ? 'bg-indigo-600 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[#2D5A43] text-white shadow'
+                : 'text-[#5A7765] hover:text-[#1C2E24]'
             }`}
           >
             Linear (Garis)
@@ -576,8 +576,8 @@ export default function GradientPicker({
             }}
             className={`flex-1 py-1 rounded-md transition cursor-pointer ${
               grad.mode === 'radial'
-                ? 'bg-indigo-600 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[#2D5A43] text-white shadow'
+                : 'text-[#5A7765] hover:text-[#1C2E24]'
             }`}
           >
             Radial (Pusat)
@@ -586,7 +586,7 @@ export default function GradientPicker({
 
         {/* Live 2D Swatch */}
         <div
-          className="w-9 h-7 rounded-lg border border-slate-700 shadow-inner shrink-0"
+          className="w-9 h-7 rounded-lg border border-[#D2E5DA] shadow-inner shrink-0"
           style={{ backgroundImage: livePreviewCss }}
           title="Pratinjau Gradien Aktual"
         />
@@ -594,9 +594,9 @@ export default function GradientPicker({
 
       {/* 2. INTERACTIVE GRADIENT BAR WITH DRAGGABLE COLOR STOPS */}
       <div className="space-y-1">
-        <div className="flex items-center justify-between text-[10px] text-slate-400">
+        <div className="flex items-center justify-between text-[10px] text-[#5A7765]">
           <span>Klik bar untuk tambah titik warna</span>
-          <span className="font-mono text-indigo-300">{grad.stops.length} Warna</span>
+          <span className="font-mono text-[#2D5A43] font-semibold">{grad.stops.length} Warna</span>
         </div>
 
         <div className="relative pt-1 pb-3 select-none">
@@ -608,9 +608,9 @@ export default function GradientPicker({
               const pct = ((e.clientX - rect.left) / rect.width) * 100;
               addStopAtPosition(pct);
             }}
-            className="h-6 w-full rounded-lg border border-slate-700 cursor-copy relative overflow-hidden shadow-inner"
+            className="h-6 w-full rounded-lg border border-[#D2E5DA] cursor-copy relative overflow-hidden shadow-inner"
             style={{
-              backgroundImage: `${horizontalPreviewCss}, repeating-conic-gradient(#1e293b 0% 25%, #0f172a 0% 50%)`,
+              backgroundImage: `${horizontalPreviewCss}, repeating-conic-gradient(#e2e8f0 0% 25%, #f8fafc 0% 50%)`,
               backgroundSize: '100% 100%, 10px 10px'
             }}
             title="Klik di titik mana saja pada bar ini untuk menambah warna baru"
@@ -641,7 +641,7 @@ export default function GradientPicker({
                 title={`${stop.color} (${Math.round(stop.position)}%) — Geser kiri/kanan`}
                 className={`absolute top-2 -translate-x-1/2 w-4 h-4 rounded-full cursor-ew-resize transition-transform ${
                   isSelected
-                    ? 'ring-2 ring-white border-2 border-indigo-600 scale-125 z-20 shadow-lg'
+                    ? 'ring-2 ring-white border-2 border-[#2D5A43] scale-125 z-20 shadow-lg'
                     : 'border-2 border-white/90 shadow z-10 hover:scale-110'
                 }`}
               />
@@ -652,9 +652,9 @@ export default function GradientPicker({
 
       {/* 3. DIRECTION / ANGLE OR RADIAL POSITION CONTROLS */}
       {grad.mode === 'linear' ? (
-        <div className="space-y-2 pt-1 border-t border-slate-800/80">
+        <div className="space-y-2 pt-1 border-t border-[#E2EDE6]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-[#1C2E24] uppercase tracking-wider">
               Arah &amp; Sudut Gradien
             </span>
             <div className="flex items-center gap-1">
@@ -668,9 +668,9 @@ export default function GradientPicker({
                     (((parseInt(e.target.value, 10) || 0) % 360) + 360) % 360;
                   commit({ ...grad, angle: deg });
                 }}
-                className="w-14 px-1.5 py-0.5 rounded bg-slate-950 border border-slate-700 text-right font-mono text-[11px] text-amber-300"
+                className="w-14 px-1.5 py-0.5 rounded bg-white border border-[#D2E5DA] text-right font-mono text-[11px] text-[#2D5A43]"
               />
-              <span className="text-[10px] text-slate-400">°</span>
+              <span className="text-[10px] text-[#5A7765]">°</span>
             </div>
           </div>
 
@@ -685,14 +685,14 @@ export default function GradientPicker({
               }}
               style={{ touchAction: 'none' }}
               title="Putar kompas arah gradien (Tahan Shift = kelipatan 15°)"
-              className="w-10 h-10 rounded-full bg-slate-950 border-2 border-slate-700 hover:border-indigo-400 relative flex items-center justify-center cursor-grab active:cursor-grabbing shrink-0 shadow-inner"
+              className="w-10 h-10 rounded-full bg-white border-2 border-[#D2E5DA] hover:border-[#2D5A43] relative flex items-center justify-center cursor-grab active:cursor-grabbing shrink-0 shadow-inner"
             >
               <div
                 style={{ transform: `rotate(${grad.angle}deg)` }}
                 className="w-full h-full flex flex-col items-center justify-start pt-1 pointer-events-none"
               >
-                <div className="w-2 h-2 rounded-full bg-indigo-400 shadow" />
-                <div className="w-0.5 h-2.5 bg-indigo-400/70" />
+                <div className="w-2 h-2 rounded-full bg-[#2D5A43] shadow" />
+                <div className="w-0.5 h-2.5 bg-[#2D5A43]/70" />
               </div>
             </div>
 
@@ -707,7 +707,7 @@ export default function GradientPicker({
                 onChange={(e) =>
                   commit({ ...grad, angle: parseInt(e.target.value, 10) })
                 }
-                className="w-full accent-indigo-400 cursor-pointer"
+                className="w-full accent-[#2D5A43] cursor-pointer"
               />
 
               {/* 8 Quick Direction Buttons */}
@@ -732,8 +732,8 @@ export default function GradientPicker({
                     title={label}
                     className={`p-1 rounded border flex items-center justify-center transition cursor-pointer ${
                       Math.round(grad.angle) === deg
-                        ? 'bg-indigo-600 border-indigo-400 text-white'
-                        : 'bg-slate-950 hover:bg-slate-800 border-slate-800 text-slate-400 hover:text-white'
+                        ? 'bg-[#2D5A43] border-[#2D5A43] text-white shadow-xs'
+                        : 'bg-white hover:bg-[#E8F3ED] border-[#D2E5DA] text-[#5A7765] hover:text-[#1C2E24]'
                     }`}
                   >
                     <Icon className="w-3 h-3" />
@@ -745,9 +745,9 @@ export default function GradientPicker({
         </div>
       ) : (
         /* RADIAL SHAPE & CENTER CONTROLS */
-        <div className="space-y-2 pt-1 border-t border-slate-800/80">
+        <div className="space-y-2 pt-1 border-t border-[#E2EDE6]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-[#1C2E24] uppercase tracking-wider">
               Bentuk &amp; Titik Pusat Radial
             </span>
             <select
@@ -759,7 +759,7 @@ export default function GradientPicker({
                   radialShape: e.target.value as 'circle' | 'ellipse'
                 });
               }}
-              className="px-2 py-0.5 rounded bg-slate-950 border border-slate-700 text-[10px] text-white"
+              className="px-2 py-0.5 rounded bg-white border border-[#D2E5DA] text-[10px] text-[#1C2E24]"
             >
               <option value="circle">Bulat (Circle)</option>
               <option value="ellipse">Elips (Ellipse)</option>
@@ -768,7 +768,7 @@ export default function GradientPicker({
 
           <div className="flex items-center gap-2.5">
             {/* 3x3 Quick Radial Focal Anchor Matrix */}
-            <div className="grid grid-cols-3 gap-1 p-1 rounded-lg bg-slate-950 border border-slate-800 shrink-0">
+            <div className="grid grid-cols-3 gap-1 p-1 rounded-lg bg-white border border-[#D2E5DA] shrink-0">
               {[15, 50, 85].map((ry) =>
                 [15, 50, 85].map((rx) => {
                   const active =
@@ -785,8 +785,8 @@ export default function GradientPicker({
                       title={`Pusat ${rx}%, ${ry}%`}
                       className={`w-3.5 h-3.5 rounded-sm transition cursor-pointer ${
                         active
-                          ? 'bg-indigo-500 ring-1 ring-indigo-300'
-                          : 'bg-slate-800 hover:bg-slate-600'
+                          ? 'bg-[#2D5A43] ring-1 ring-[#D2E5DA]'
+                          : 'bg-[#E2EDE6] hover:bg-[#D2E5DA]'
                       }`}
                     />
                   );
@@ -795,7 +795,7 @@ export default function GradientPicker({
             </div>
 
             <div className="flex-1 space-y-1">
-              <div className="flex items-center justify-between text-[10px] text-slate-400">
+              <div className="flex items-center justify-between text-[10px] text-[#5A7765]">
                 <span>Pusat X ({grad.radialX}%)</span>
                 <span>Pusat Y ({grad.radialY}%)</span>
               </div>
@@ -808,7 +808,7 @@ export default function GradientPicker({
                 onChange={(e) =>
                   commit({ ...grad, radialX: parseInt(e.target.value, 10) })
                 }
-                className="w-full accent-indigo-400"
+                className="w-full accent-[#2D5A43]"
               />
               <input
                 type="range"
@@ -819,7 +819,7 @@ export default function GradientPicker({
                 onChange={(e) =>
                   commit({ ...grad, radialY: parseInt(e.target.value, 10) })
                 }
-                className="w-full accent-indigo-400"
+                className="w-full accent-[#2D5A43]"
               />
             </div>
           </div>
@@ -827,32 +827,32 @@ export default function GradientPicker({
       )}
 
       {/* 4. COLOR STOPS LIST (ADD, REMOVE, REORDER, OPACITY, DISTRIBUTE) */}
-      <div className="space-y-2 pt-2 border-t border-slate-800/80">
+      <div className="space-y-2 pt-2 border-t border-[#E2EDE6]">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">
+          <span className="text-[10px] font-bold text-[#1C2E24] uppercase tracking-wider">
             Daftar Warna ({grad.stops.length})
           </span>
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={handleDistributeStops}
-              className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 flex items-center gap-0.5 cursor-pointer"
+              className="px-1.5 py-0.5 rounded bg-white hover:bg-[#E8F3ED] border border-[#D2E5DA] text-[10px] text-[#5A7765] hover:text-[#1C2E24] flex items-center gap-0.5 cursor-pointer transition"
               title="Ratakan jarak persen antar titik warna"
             >
-              <SlidersHorizontal className="w-2.5 h-2.5" /> Ratakan
+              <SlidersHorizontal className="w-2.5 h-2.5 text-[#2D5A43]" /> Ratakan
             </button>
             <button
               type="button"
               onClick={handleReverseStops}
-              className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 flex items-center gap-0.5 cursor-pointer"
+              className="px-1.5 py-0.5 rounded bg-white hover:bg-[#E8F3ED] border border-[#D2E5DA] text-[10px] text-[#5A7765] hover:text-[#1C2E24] flex items-center gap-0.5 cursor-pointer transition"
               title="Balik urutan warna"
             >
-              <ArrowLeftRight className="w-2.5 h-2.5" /> Balik
+              <ArrowLeftRight className="w-2.5 h-2.5 text-[#2D5A43]" /> Balik
             </button>
             <button
               type="button"
               onClick={handleAddStopButton}
-              className="px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-[10px] font-bold text-white flex items-center gap-0.5 cursor-pointer"
+              className="px-2 py-0.5 rounded bg-[#2D5A43] hover:bg-[#234735] text-[10px] font-bold text-white flex items-center gap-0.5 cursor-pointer transition shadow-xs"
               title="Tambah titik warna baru"
             >
               <Plus className="w-2.5 h-2.5" /> Warna
@@ -872,8 +872,8 @@ export default function GradientPicker({
                   onClick={() => setSelectedStopId(stop.id)}
                   className={`p-1.5 rounded-lg border flex items-center gap-1.5 transition cursor-pointer ${
                     isSelected
-                      ? 'bg-indigo-500/15 border-indigo-400/70'
-                      : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
+                      ? 'bg-[#E8F3ED] border-[#2D5A43]/50 shadow-xs'
+                      : 'bg-white border-[#E2EDE6] hover:border-[#D2E5DA]'
                   }`}
                 >
                   {/* Color Picker Swatch */}
@@ -884,7 +884,7 @@ export default function GradientPicker({
                     onChange={(e) =>
                       updateStop(stop.id, { color: e.target.value })
                     }
-                    className="w-6 h-6 rounded bg-transparent border border-slate-600 cursor-pointer shrink-0"
+                    className="w-6 h-6 rounded bg-transparent border border-[#D2E5DA] cursor-pointer shrink-0"
                   />
 
                   {/* Hex Input */}
@@ -907,7 +907,7 @@ export default function GradientPicker({
                         }
                       }
                     }}
-                    className="w-16 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 font-mono text-[10px] text-white"
+                    className="w-16 px-1.5 py-0.5 rounded bg-white border border-[#D2E5DA] font-mono text-[10px] text-[#1C2E24]"
                   />
 
                   {/* Position % */}
@@ -925,10 +925,10 @@ export default function GradientPicker({
                           position: clamp(parseInt(e.target.value, 10) || 0, 0, 100)
                         })
                       }
-                      className="w-11 px-1 py-0.5 rounded bg-slate-900 border border-slate-700 font-mono text-[10px] text-right text-indigo-200"
+                      className="w-11 px-1 py-0.5 rounded bg-white border border-[#D2E5DA] font-mono text-[10px] text-right text-[#2D5A43] font-semibold"
                       title="Posisi titik warna (0% - 100%)"
                     />
-                    <span className="text-[9px] text-slate-400">%</span>
+                    <span className="text-[9px] text-[#5A7765]">%</span>
                   </div>
 
                   {/* Opacity % */}
@@ -947,10 +947,10 @@ export default function GradientPicker({
                           opacity: clamp(parseInt(e.target.value, 10) || 0, 0, 100)
                         })
                       }
-                      className="w-11 px-1 py-0.5 rounded bg-slate-900 border border-slate-700 font-mono text-[10px] text-right text-slate-300"
+                      className="w-11 px-1 py-0.5 rounded bg-white border border-[#D2E5DA] font-mono text-[10px] text-right text-[#5A7765]"
                       title="Opasitas warna (0% - 100%)"
                     />
-                    <span className="text-[9px] text-slate-500">α</span>
+                    <span className="text-[9px] text-[#5A7765]">α</span>
                   </div>
 
                   {/* Delete Stop (disabled if only 2 stops left) */}
@@ -961,7 +961,7 @@ export default function GradientPicker({
                       e.stopPropagation();
                       handleRemoveStop(stop.id);
                     }}
-                    className="p-1 rounded hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 disabled:opacity-25 cursor-pointer"
+                    className="p-1 rounded hover:bg-rose-50 text-[#5A7765] hover:text-rose-600 disabled:opacity-25 cursor-pointer transition"
                     title={
                       grad.stops.length <= 2
                         ? 'Minimal 2 warna untuk gradien'
@@ -977,13 +977,13 @@ export default function GradientPicker({
       </div>
 
       {/* 5. QUICK PRESET SWATCHES & OPTIONAL RAW CSS */}
-      <div className="pt-2 border-t border-slate-800/80 space-y-2">
+      <div className="pt-2 border-t border-[#E2EDE6] space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-slate-400">Preset Cepat</span>
+          <span className="text-[10px] text-[#5A7765]">Preset Cepat</span>
           <button
             type="button"
             onClick={() => setShowRawCss(!showRawCss)}
-            className="text-[10px] text-slate-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+            className="text-[10px] text-[#5A7765] hover:text-[#2D5A43] flex items-center gap-1 cursor-pointer transition font-semibold"
           >
             <Code2 className="w-3 h-3" /> {showRawCss ? 'Tutup CSS' : 'Kode CSS'}
           </button>
@@ -1002,7 +1002,7 @@ export default function GradientPicker({
               }}
               style={{ backgroundImage: preset.css }}
               title={preset.name}
-              className="h-6 rounded-md border border-slate-700 hover:border-white hover:scale-105 transition shadow cursor-pointer"
+              className="h-6 rounded-md border border-[#D2E5DA] hover:border-[#2D5A43] hover:scale-105 transition shadow cursor-pointer"
             />
           ))}
         </div>
@@ -1013,7 +1013,7 @@ export default function GradientPicker({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder="linear-gradient(135deg, #090d16 0%, #312e81 100%)"
-            className="w-full px-2 py-1 rounded bg-slate-950 border border-slate-700 text-[10px] text-slate-300 font-mono"
+            className="w-full px-2 py-1 rounded bg-white border border-[#D2E5DA] text-[10px] text-[#1C2E24] font-mono"
           />
         )}
       </div>

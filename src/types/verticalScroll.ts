@@ -94,11 +94,16 @@ export interface PageLayerElement {
   contentLabel?: string;        // Contoh: "Nama Acara & Tanggal"
 }
 
+export type LayoutMode = 'fluid' | 'fixed';
+export type FixedAlignment = 'left' | 'center' | 'right';
+export type BackgroundPositionPreset = 'left' | 'center' | 'right';
+
 export interface PageSectionBackground {
   type: 'color' | 'gradient' | 'image';
   value: string; // Hex color, CSS gradient string, atau Image URL
   parallaxSpeed?: number; // 0 = statis, 0.4 = parallax scroll
   overlayOpacity?: number; // 0.0 - 1.0
+  backgroundPosition?: BackgroundPositionPreset; // Fokus posisi gambar ('left' | 'center' | 'right')
 }
 
 export interface PageSection {
@@ -107,6 +112,7 @@ export interface PageSection {
   order: number;
   minHeight: string; // '100vh', '800px', 'auto'
   stageHeight?: number; // Tinggi kanvas referensi dalam pixel (default: 600 atau mengikuti minHeight px)
+  useGlobalBackground?: boolean; // true = ikuti globalTheme.globalBackground; false/undefined = custom background halaman ini
   background: PageSectionBackground;
   elements: PageLayerElement[];
 }
@@ -120,6 +126,10 @@ export interface VerticalScrollProject extends BaseProject {
     accentColor: string;
     showScrollIndicator: boolean;
     smoothScroll: boolean;
-    stageWidth?: number; // Lebar kanvas referensi dalam pixel (default: 800, atau 480 untuk mode potret mobile)
+    stageWidth?: number; // Lebar kanvas / kolom referensi dalam pixel (default: 800, atau 480 untuk mode potret mobile)
+    layoutMode?: LayoutMode; // 'fluid' (penuh layar) | 'fixed' (lebar kolom terkunci)
+    fixedAlign?: FixedAlignment; // Penempatan kolom saat mode 'fixed': 'left' | 'center' | 'right'
+    globalBackground?: PageSectionBackground; // Background Utama yang dipakai bersama lintas halaman
+    outerBackdrop?: PageSectionBackground; // Background Luar statis di area samping saat mode 'fixed'
   };
 }
