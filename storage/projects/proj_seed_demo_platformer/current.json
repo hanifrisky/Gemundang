@@ -1,0 +1,326 @@
+{
+  "theme_type": "platformer",
+  "audio": {
+    "bgm": {
+      "id": "preset-bgm-wedding",
+      "presetId": "preset-bgm-wedding",
+      "name": "Romantic Wedding Loop (Default)",
+      "category": "bgm",
+      "volume": 0.8,
+      "loop": true
+    },
+    "jump": {
+      "id": "preset-jump-classic",
+      "presetId": "preset-jump-classic",
+      "name": "Classic Jump (Default)",
+      "category": "jump",
+      "volume": 0.85
+    },
+    "footstep": {
+      "id": "preset-footstep-soft",
+      "presetId": "preset-footstep-soft",
+      "name": "Soft Step (Default)",
+      "category": "footstep",
+      "volume": 0.7
+    },
+    "idle": {
+      "id": "preset-idle-chime",
+      "presetId": "preset-idle-chime",
+      "name": "Wind Chime (Default)",
+      "category": "idle",
+      "volume": 0.75
+    },
+    "proximity": {
+      "id": "preset-prox-bell",
+      "presetId": "preset-prox-bell",
+      "name": "Pleasant Bell (Default)",
+      "category": "proximity",
+      "volume": 0.85
+    },
+    "interact": {
+      "id": "preset-interact-fanfare",
+      "presetId": "preset-interact-fanfare",
+      "name": "Joyful Fanfare (Default)",
+      "category": "interact",
+      "volume": 0.9
+    }
+  },
+  "player": {
+    "startX": 100,
+    "startY": 400,
+    "width": 44,
+    "height": 60,
+    "collider": {
+      "left": 0,
+      "right": 0,
+      "top": 0,
+      "bottom": 0
+    },
+    "canJump": true,
+    "jumpForce": 13,
+    "speed": 4,
+    "idleSprite": {
+      "id": "player-groom-idle",
+      "name": "Groom (Idle)",
+      "type": "sequence",
+      "frames": [
+        "data:image/svg+xml;utf8,%0A%20%20%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2064%22%20width%3D%2248%22%20height%3D%2264%22%3E%0A%20%20%20%20%3C!--%20Groom%20Head%20--%3E%0A%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%228%22%20width%3D%2216%22%20height%3D%2214%22%20rx%3D%224%22%20fill%3D%22%23ffdbac%22%2F%3E%0A%20%20%20%20%3C!--%20Hair%20--%3E%0A%20%20%20%20%3Cpath%20d%3D%22M14%208%20Q24%202%2034%208%20L34%2012%20Q24%209%2014%2012%20Z%22%20fill%3D%22%232c1d11%22%2F%3E%0A%20%20%20%20%3C!--%20Eyes%20--%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2221%22%20cy%3D%2214%22%20r%3D%221.5%22%20fill%3D%22%23111%22%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2227%22%20cy%3D%2214%22%20r%3D%221.5%22%20fill%3D%22%23111%22%2F%3E%0A%20%20%20%20%3C!--%20Smile%20--%3E%0A%20%20%20%20%3Cpath%20d%3D%22M22%2018%20Q24%2020%2026%2018%22%20stroke%3D%22%23111%22%20stroke-width%3D%221%22%20fill%3D%22none%22%2F%3E%0A%20%20%20%20%3C!--%20Suit%20Body%20--%3E%0A%20%20%20%20%3Crect%20x%3D%2214%22%20y%3D%2222%22%20width%3D%2220%22%20height%3D%2224%22%20rx%3D%222%22%20fill%3D%22%231e293b%22%2F%3E%0A%20%20%20%20%3C!--%20White%20Shirt%20%26%20Tie%20--%3E%0A%20%20%20%20%3Cpolygon%20points%3D%2221%2C22%2027%2C22%2024%2C30%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%20%20%3Cpolygon%20points%3D%2223%2C24%2025%2C24%2024%2C34%22%20fill%3D%22%23dc2626%22%2F%3E%0A%20%20%20%20%3C!--%20Rose%20boutonniere%20--%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2217%22%20cy%3D%2226%22%20r%3D%222%22%20fill%3D%22%23e11d48%22%2F%3E%0A%20%20%20%20%3C!--%20Hands%20--%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2234%22%20r%3D%223%22%20fill%3D%22%23ffdbac%22%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2236%22%20cy%3D%2234%22%20r%3D%223%22%20fill%3D%22%23ffdbac%22%2F%3E%0A%20%20%20%20%3C!--%20Legs%20--%3E%0A%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%2246%22%20width%3D%226%22%20height%3D%2214%22%20fill%3D%22%230f172a%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2226%22%20y%3D%2246%22%20width%3D%226%22%20height%3D%2214%22%20fill%3D%22%230f172a%22%2F%3E%0A%20%20%20%20%3C!--%20Shoes%20--%3E%0A%20%20%20%20%3Crect%20x%3D%2214%22%20y%3D%2258%22%20width%3D%228%22%20height%3D%224%22%20rx%3D%222%22%20fill%3D%22%23020617%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2226%22%20y%3D%2258%22%20width%3D%228%22%20height%3D%224%22%20rx%3D%222%22%20fill%3D%22%23020617%22%2F%3E%0A%20%20%3C%2Fsvg%3E%0A",
+        "data:image/svg+xml;utf8,%0A%20%20%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2064%22%20width%3D%2248%22%20height%3D%2264%22%3E%0A%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%229%22%20width%3D%2216%22%20height%3D%2214%22%20rx%3D%224%22%20fill%3D%22%23ffdbac%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M14%209%20Q24%203%2034%209%20L34%2013%20Q24%2010%2014%2013%20Z%22%20fill%3D%22%232c1d11%22%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2221%22%20cy%3D%2215%22%20r%3D%221.5%22%20fill%3D%22%23111%22%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2227%22%20cy%3D%2215%22%20r%3D%221.5%22%20fill%3D%22%23111%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M22%2019%20Q24%2021%2026%2019%22%20stroke%3D%22%23111%22%20stroke-width%3D%221%22%20fill%3D%22none%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2214%22%20y%3D%2223%22%20width%3D%2220%22%20height%3D%2223%22%20rx%3D%222%22%20fill%3D%22%231e293b%22%2F%3E%0A%20%20%20%20%3Cpolygon%20points%3D%2221%2C23%2027%2C23%2024%2C31%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%20%20%3Cpolygon%20points%3D%2223%2C25%2025%2C25%2024%2C35%22%20fill%3D%22%23dc2626%22%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2217%22%20cy%3D%2227%22%20r%3D%222%22%20fill%3D%22%23e11d48%22%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2235%22%20r%3D%223%22%20fill%3D%22%23ffdbac%22%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2236%22%20cy%3D%2235%22%20r%3D%223%22%20fill%3D%22%23ffdbac%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%2246%22%20width%3D%226%22%20height%3D%2214%22%20fill%3D%22%230f172a%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2226%22%20y%3D%2246%22%20width%3D%226%22%20height%3D%2214%22%20fill%3D%22%230f172a%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2214%22%20y%3D%2258%22%20width%3D%228%22%20height%3D%224%22%20rx%3D%222%22%20fill%3D%22%23020617%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2226%22%20y%3D%2258%22%20width%3D%228%22%20height%3D%224%22%20rx%3D%222%22%20fill%3D%22%23020617%22%2F%3E%0A%20%20%3C%2Fsvg%3E%0A"
+      ],
+      "frameRate": 2,
+      "loop": true,
+      "category": "character"
+    },
+    "runSprite": {
+      "id": "player-groom-run",
+      "name": "Groom (Run)",
+      "type": "sequence",
+      "frames": [
+        "data:image/svg+xml;utf8,%0A%20%20%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2064%22%20width%3D%2248%22%20height%3D%2264%22%3E%0A%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%227%22%20width%3D%2216%22%20height%3D%2214%22%20rx%3D%224%22%20fill%3D%22%23ffdbac%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M14%207%20Q24%201%2034%207%20L34%2011%20Q24%208%2014%2011%20Z%22%20fill%3D%22%232c1d11%22%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2223%22%20cy%3D%2213%22%20r%3D%221.5%22%20fill%3D%22%23111%22%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2229%22%20cy%3D%2213%22%20r%3D%221.5%22%20fill%3D%22%23111%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2214%22%20y%3D%2221%22%20width%3D%2220%22%20height%3D%2224%22%20rx%3D%222%22%20fill%3D%22%231e293b%22%2F%3E%0A%20%20%20%20%3Cpolygon%20points%3D%2221%2C21%2027%2C21%2024%2C29%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%20%20%3Cpolygon%20points%3D%2223%2C23%2025%2C23%2024%2C33%22%20fill%3D%22%23dc2626%22%2F%3E%0A%20%20%20%20%3C!--%20Running%20Arms%20--%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2210%22%20cy%3D%2228%22%20r%3D%223%22%20fill%3D%22%23ffdbac%22%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2238%22%20cy%3D%2238%22%20r%3D%223%22%20fill%3D%22%23ffdbac%22%2F%3E%0A%20%20%20%20%3C!--%20Running%20Legs%20--%3E%0A%20%20%20%20%3Cpath%20d%3D%22M18%2045%20L10%2058%20L6%2058%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20fill%3D%22none%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M28%2045%20L36%2054%20L42%2054%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20fill%3D%22none%22%2F%3E%0A%20%20%3C%2Fsvg%3E%0A",
+        "data:image/svg+xml;utf8,%0A%20%20%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2064%22%20width%3D%2248%22%20height%3D%2264%22%3E%0A%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%228%22%20width%3D%2216%22%20height%3D%2214%22%20rx%3D%224%22%20fill%3D%22%23ffdbac%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M14%208%20Q24%202%2034%208%20L34%2012%20Q24%209%2014%2012%20Z%22%20fill%3D%22%232c1d11%22%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2223%22%20cy%3D%2214%22%20r%3D%221.5%22%20fill%3D%22%23111%22%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2229%22%20cy%3D%2214%22%20r%3D%221.5%22%20fill%3D%22%23111%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%2214%22%20y%3D%2222%22%20width%3D%2220%22%20height%3D%2224%22%20rx%3D%222%22%20fill%3D%22%231e293b%22%2F%3E%0A%20%20%20%20%3Cpolygon%20points%3D%2221%2C22%2027%2C22%2024%2C30%22%20fill%3D%22%23ffffff%22%2F%3E%0A%20%20%20%20%3Cpolygon%20points%3D%2223%2C24%2025%2C24%2024%2C34%22%20fill%3D%22%23dc2626%22%2F%3E%0A%20%20%20%20%3C!--%20Running%20Arms%20Switched%20--%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2212%22%20cy%3D%2238%22%20r%3D%223%22%20fill%3D%22%23ffdbac%22%2F%3E%0A%20%20%20%20%3Ccircle%20cx%3D%2236%22%20cy%3D%2228%22%20r%3D%223%22%20fill%3D%22%23ffdbac%22%2F%3E%0A%20%20%20%20%3C!--%20Running%20Legs%20Switched%20--%3E%0A%20%20%20%20%3Cpath%20d%3D%22M18%2045%20L26%2056%20L32%2056%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20fill%3D%22none%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M28%2045%20L20%2056%20L14%2056%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20fill%3D%22none%22%2F%3E%0A%20%20%3C%2Fsvg%3E%0A"
+      ],
+      "frameRate": 6,
+      "loop": true,
+      "category": "character"
+    },
+    "editable_appearance": true,
+    "editableLabel": "Karakter Pemain (Avatar Tamu)"
+  },
+  "world": {
+    "groundMode": "endless",
+    "worldWidth": 3200,
+    "groundY": 460,
+    "platforms": [
+      {
+        "id": "plat-1",
+        "x": 650,
+        "y": 360,
+        "width": 140,
+        "height": 24,
+        "tileColor": "#4ade80"
+      },
+      {
+        "id": "plat-2",
+        "x": 820,
+        "y": 280,
+        "width": 160,
+        "height": 24,
+        "tileColor": "#4ade80"
+      },
+      {
+        "id": "plat-3",
+        "x": 1250,
+        "y": 350,
+        "width": 160,
+        "height": 24,
+        "tileColor": "#4ade80"
+      },
+      {
+        "id": "plat-4",
+        "x": 1750,
+        "y": 340,
+        "width": 180,
+        "height": 24,
+        "tileColor": "#4ade80"
+      },
+      {
+        "id": "plat-5",
+        "x": 2350,
+        "y": 360,
+        "width": 140,
+        "height": 24,
+        "tileColor": "#4ade80"
+      }
+    ],
+    "parallaxLayers": [
+      {
+        "id": "layer-sky",
+        "name": "Langit Sunset",
+        "imageUrl": "data:image/svg+xml;utf8,%0A%20%20%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201000%20400%22%20width%3D%221000%22%20height%3D%22400%22%3E%0A%20%20%20%20%3Cdefs%3E%0A%20%20%20%20%20%20%3ClinearGradient%20id%3D%22skyGrad%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%20%20%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23fdba74%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Cstop%20offset%3D%2240%25%22%20stop-color%3D%22%23f472b6%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Cstop%20offset%3D%2280%25%22%20stop-color%3D%22%23c084fc%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23818cf8%22%2F%3E%0A%20%20%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3C%2Fdefs%3E%0A%20%20%20%20%3Crect%20width%3D%221000%22%20height%3D%22400%22%20fill%3D%22url(%23skyGrad)%22%2F%3E%0A%20%20%20%20%3C!--%20Distant%20Sun%20%2F%20Moon%20--%3E%0A%20%20%20%20%3Ccircle%20cx%3D%22500%22%20cy%3D%22180%22%20r%3D%2260%22%20fill%3D%22%23fef08a%22%20opacity%3D%220.6%22%2F%3E%0A%20%20%3C%2Fsvg%3E%0A",
+        "speedRatio": 0.05,
+        "yOffset": 0,
+        "editable_appearance": true,
+        "editableLabel": "Latar Belakang Langit"
+      },
+      {
+        "id": "layer-mountain",
+        "name": "Pegunungan Ungu",
+        "imageUrl": "data:image/svg+xml;utf8,%0A%20%20%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201000%20400%22%20width%3D%221000%22%20height%3D%22400%22%3E%0A%20%20%20%20%3C!--%20Distant%20Mountains%20--%3E%0A%20%20%20%20%3Cpolygon%20points%3D%220%2C400%20150%2C220%20320%2C380%20480%2C180%20650%2C390%20850%2C210%201000%2C400%22%20fill%3D%22%234c1d95%22%20opacity%3D%220.45%22%2F%3E%0A%20%20%20%20%3Cpolygon%20points%3D%220%2C400%2080%2C280%20240%2C400%20400%2C250%20560%2C400%20750%2C270%20920%2C400%201000%2C400%22%20fill%3D%22%233b0764%22%20opacity%3D%220.6%22%2F%3E%0A%20%20%3C%2Fsvg%3E%0A",
+        "speedRatio": 0.2,
+        "yOffset": 60,
+        "editable_appearance": false
+      },
+      {
+        "id": "layer-cloud",
+        "name": "Awan Berarak",
+        "imageUrl": "data:image/svg+xml;utf8,%0A%20%20%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201000%20400%22%20width%3D%221000%22%20height%3D%22400%22%3E%0A%20%20%20%20%3C!--%20Fluffy%20Clouds%20--%3E%0A%20%20%20%20%3Cpath%20d%3D%22M50%20120%20Q70%2090%20100%20100%20Q130%2080%20160%20110%20Q190%20100%20200%20130%20Q210%20160%20180%20160%20L60%20160%20Q40%20150%2050%20120%20Z%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M450%2090%20Q470%2060%20500%2070%20Q530%2050%20560%2080%20Q590%2070%20600%20100%20Q610%20130%20580%20130%20L460%20130%20Q440%20120%20450%2090%20Z%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.6%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M780%20140%20Q800%20110%20830%20120%20Q860%20100%20890%20130%20Q920%20120%20930%20150%20Q940%20180%20910%20180%20L790%20180%20Q770%20170%20780%20140%20Z%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.4%22%2F%3E%0A%20%20%3C%2Fsvg%3E%0A",
+        "speedRatio": 0.35,
+        "yOffset": 20,
+        "editable_appearance": false
+      },
+      {
+        "id": "layer-trees",
+        "name": "Pohon & Bukit Depan",
+        "imageUrl": "data:image/svg+xml;utf8,%0A%20%20%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201000%20400%22%20width%3D%221000%22%20height%3D%22400%22%3E%0A%20%20%20%20%3C!--%20Hill%20with%20Trees%20Silhouette%20--%3E%0A%20%20%20%20%3Cpath%20d%3D%22M0%20360%20Q250%20310%20500%20350%20Q750%20320%201000%20360%20L1000%20400%20L0%20400%20Z%22%20fill%3D%22%23064e3b%22%20opacity%3D%220.7%22%2F%3E%0A%20%20%20%20%3C!--%20Pine%20Trees%20--%3E%0A%20%20%20%20%3Cpolygon%20points%3D%22120%2C340%20100%2C370%20140%2C370%22%20fill%3D%22%23022c22%22%2F%3E%0A%20%20%20%20%3Cpolygon%20points%3D%22120%2C320%20105%2C350%20135%2C350%22%20fill%3D%22%23022c22%22%2F%3E%0A%20%20%20%20%3Cpolygon%20points%3D%22380%2C350%20360%2C380%20400%2C380%22%20fill%3D%22%23022c22%22%2F%3E%0A%20%20%20%20%3Cpolygon%20points%3D%22620%2C330%20600%2C365%20640%2C365%22%20fill%3D%22%23022c22%22%2F%3E%0A%20%20%20%20%3Cpolygon%20points%3D%22850%2C345%20830%2C375%20870%2C375%22%20fill%3D%22%23022c22%22%2F%3E%0A%20%20%3C%2Fsvg%3E%0A",
+        "speedRatio": 0.65,
+        "yOffset": 70,
+        "editable_appearance": false
+      }
+    ]
+  },
+  "entities": [
+    {
+      "id": "ent-penghulu",
+      "name": "Penghulu Pernikahan",
+      "type": "npc",
+      "x": 350,
+      "y": 396,
+      "width": 48,
+      "height": 64,
+      "sprite": {
+        "id": "npc-priest",
+        "name": "Penghulu / Officiant",
+        "type": "sequence",
+        "frames": [
+          "data:image/svg+xml;utf8,%0A%20%20%20%20%20%20%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2064%22%20width%3D%2248%22%20height%3D%2264%22%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Peci%20%2F%20Hat%20--%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%225%22%20width%3D%2216%22%20height%3D%227%22%20rx%3D%222%22%20fill%3D%22%230f172a%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%2212%22%20width%3D%2216%22%20height%3D%2214%22%20rx%3D%224%22%20fill%3D%22%23ffdbac%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Ccircle%20cx%3D%2221%22%20cy%3D%2218%22%20r%3D%221.5%22%20fill%3D%22%23111%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Ccircle%20cx%3D%2227%22%20cy%3D%2218%22%20r%3D%221.5%22%20fill%3D%22%23111%22%2F%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Robe%20%2F%20Jas%20Batik%20--%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%2214%22%20y%3D%2226%22%20width%3D%2220%22%20height%3D%2232%22%20rx%3D%223%22%20fill%3D%22%23854d0e%22%2F%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Golden%20Sash%20--%3E%0A%20%20%20%20%20%20%20%20%3Cline%20x1%3D%2216%22%20y1%3D%2226%22%20x2%3D%2232%22%20y2%3D%2258%22%20stroke%3D%22%23facc15%22%20stroke-width%3D%224%22%2F%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Scroll%20%2F%20Buku%20Nikah%20--%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%2220%22%20y%3D%2234%22%20width%3D%2212%22%20height%3D%2210%22%20rx%3D%221%22%20fill%3D%22%23fef08a%22%20stroke%3D%22%23ca8a04%22%20stroke-width%3D%221.5%22%2F%3E%0A%20%20%20%20%20%20%3C%2Fsvg%3E%0A%20%20%20%20",
+          "data:image/svg+xml;utf8,%0A%20%20%20%20%20%20%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2064%22%20width%3D%2248%22%20height%3D%2264%22%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%226%22%20width%3D%2216%22%20height%3D%227%22%20rx%3D%222%22%20fill%3D%22%230f172a%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%2213%22%20width%3D%2216%22%20height%3D%2214%22%20rx%3D%224%22%20fill%3D%22%23ffdbac%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Ccircle%20cx%3D%2221%22%20cy%3D%2219%22%20r%3D%221.5%22%20fill%3D%22%23111%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Ccircle%20cx%3D%2227%22%20cy%3D%2219%22%20r%3D%221.5%22%20fill%3D%22%23111%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%2214%22%20y%3D%2227%22%20width%3D%2220%22%20height%3D%2231%22%20rx%3D%223%22%20fill%3D%22%23854d0e%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Cline%20x1%3D%2216%22%20y1%3D%2227%22%20x2%3D%2232%22%20y2%3D%2258%22%20stroke%3D%22%23facc15%22%20stroke-width%3D%224%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%2220%22%20y%3D%2235%22%20width%3D%2212%22%20height%3D%2210%22%20rx%3D%221%22%20fill%3D%22%23fef08a%22%20stroke%3D%22%23ca8a04%22%20stroke-width%3D%221.5%22%2F%3E%0A%20%20%20%20%20%20%3C%2Fsvg%3E%0A%20%20%20%20"
+        ],
+        "frameRate": 3,
+        "loop": true,
+        "category": "character"
+      },
+      "hasInteraction": true,
+      "interaction": {
+        "type": "info",
+        "title": "Selamat Datang!",
+        "content": "Halo teman! Kami mengundangmu untuk merayakan hari bahagia Dimas & Sarah. Silakan jelajahi perjalanan cinta kami dengan berjalan ke arah kanan!"
+      },
+      "editable_appearance": true,
+      "appearanceLabel": "Kostum NPC Penghulu",
+      "editable_content": true,
+      "contentLabel": "Teks Sambutan Awal"
+    },
+    {
+      "id": "ent-billboard",
+      "name": "Layar Bioskop Teaser",
+      "type": "obstacle",
+      "x": 870,
+      "y": 216,
+      "width": 64,
+      "height": 64,
+      "sprite": {
+        "id": "obj-billboard",
+        "name": "Layar Bioskop / Video Player",
+        "type": "static",
+        "frames": [
+          "data:image/svg+xml;utf8,%0A%20%20%20%20%20%20%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%20width%3D%2264%22%20height%3D%2264%22%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Legs%20--%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%2244%22%20width%3D%224%22%20height%3D%2218%22%20fill%3D%22%23334155%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%2244%22%20y%3D%2244%22%20width%3D%224%22%20height%3D%2218%22%20fill%3D%22%23334155%22%2F%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Screen%20Border%20--%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%226%22%20y%3D%228%22%20width%3D%2252%22%20height%3D%2238%22%20rx%3D%224%22%20fill%3D%22%230f172a%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%2F%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Screen%20Glass%20--%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%2210%22%20y%3D%2212%22%20width%3D%2244%22%20height%3D%2230%22%20rx%3D%222%22%20fill%3D%22%231e293b%22%2F%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Play%20Icon%20--%3E%0A%20%20%20%20%20%20%20%20%3Cpolygon%20points%3D%2228%2C20%2040%2C27%2028%2C34%22%20fill%3D%22%23f43f5e%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Ccircle%20cx%3D%2232%22%20cy%3D%2227%22%20r%3D%2212%22%20stroke%3D%22%23f43f5e%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%2F%3E%0A%20%20%20%20%20%20%3C%2Fsvg%3E%0A%20%20%20%20"
+        ],
+        "category": "obstacle"
+      },
+      "hasInteraction": true,
+      "interaction": {
+        "type": "video",
+        "title": "Video Teaser Prewedding",
+        "content": "Tonton video perjalanan kisah cinta kami yang penuh suka dan tawa.",
+        "mediaUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+      },
+      "editable_appearance": true,
+      "appearanceLabel": "Tampilan Layar Video",
+      "editable_content": true,
+      "contentLabel": "Link Video Prewedding"
+    },
+    {
+      "id": "ent-chest",
+      "name": "Peti Galeri Bromo",
+      "type": "obstacle",
+      "x": 1300,
+      "y": 412,
+      "width": 48,
+      "height": 48,
+      "sprite": {
+        "id": "obj-chest",
+        "name": "Peti Hadiah / Kenangan",
+        "type": "sequence",
+        "frames": [
+          "data:image/svg+xml;utf8,%0A%20%20%20%20%20%20%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2048%22%20width%3D%2248%22%20height%3D%2248%22%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Closed%20Chest%20--%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%228%22%20y%3D%2216%22%20width%3D%2232%22%20height%3D%2226%22%20rx%3D%224%22%20fill%3D%22%23854d0e%22%20stroke%3D%22%233e2008%22%20stroke-width%3D%222%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%228%22%20y%3D%2214%22%20width%3D%2232%22%20height%3D%2212%22%20rx%3D%223%22%20fill%3D%22%23a16207%22%20stroke%3D%22%233e2008%22%20stroke-width%3D%222%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%2221%22%20y%3D%2220%22%20width%3D%226%22%20height%3D%228%22%20rx%3D%221%22%20fill%3D%22%23facc15%22%20stroke%3D%22%23713f12%22%20stroke-width%3D%221.5%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%221.5%22%20fill%3D%22%23713f12%22%2F%3E%0A%20%20%20%20%20%20%3C%2Fsvg%3E%0A%20%20%20%20",
+          "data:image/svg+xml;utf8,%0A%20%20%20%20%20%20%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2048%22%20width%3D%2248%22%20height%3D%2248%22%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Sparkling%20Chest%20--%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%228%22%20y%3D%2216%22%20width%3D%2232%22%20height%3D%2226%22%20rx%3D%224%22%20fill%3D%22%23854d0e%22%20stroke%3D%22%233e2008%22%20stroke-width%3D%222%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%228%22%20y%3D%2214%22%20width%3D%2232%22%20height%3D%2212%22%20rx%3D%223%22%20fill%3D%22%23a16207%22%20stroke%3D%22%233e2008%22%20stroke-width%3D%222%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%2221%22%20y%3D%2220%22%20width%3D%226%22%20height%3D%228%22%20rx%3D%221%22%20fill%3D%22%23fef08a%22%20stroke%3D%22%23713f12%22%20stroke-width%3D%221.5%22%2F%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Sparkle%20stars%20--%3E%0A%20%20%20%20%20%20%20%20%3Cpolygon%20points%3D%226%2C12%208%2C7%2010%2C12%2015%2C14%2010%2C16%208%2C21%206%2C16%201%2C14%22%20fill%3D%22%23facc15%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Cpolygon%20points%3D%2238%2C8%2040%2C4%2042%2C8%2046%2C10%2042%2C12%2040%2C16%2038%2C12%2034%2C10%22%20fill%3D%22%23facc15%22%2F%3E%0A%20%20%20%20%20%20%3C%2Fsvg%3E%0A%20%20%20%20"
+        ],
+        "frameRate": 2,
+        "loop": true,
+        "category": "obstacle"
+      },
+      "hasInteraction": true,
+      "interaction": {
+        "type": "image",
+        "title": "Galeri Foto Prewedding",
+        "content": "Momen berharga saat kami menikmati matahari terbit di atas lautan pasir Bromo.",
+        "mediaUrl": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80"
+      },
+      "editable_appearance": false,
+      "editable_content": true,
+      "contentLabel": "Foto Kenangan Bromo"
+    },
+    {
+      "id": "ent-signpost",
+      "name": "Papan Arah Lokasi",
+      "type": "decoration",
+      "x": 2050,
+      "y": 412,
+      "width": 48,
+      "height": 48,
+      "sprite": {
+        "id": "obj-signpost",
+        "name": "Papan Arah / Lokasi Acara",
+        "type": "static",
+        "frames": [
+          "data:image/svg+xml;utf8,%0A%20%20%20%20%20%20%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2048%22%20width%3D%2248%22%20height%3D%2248%22%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%2222%22%20y%3D%2212%22%20width%3D%224%22%20height%3D%2234%22%20fill%3D%22%2378350f%22%2F%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Sign%201%20Right%20--%3E%0A%20%20%20%20%20%20%20%20%3Cpath%20d%3D%22M12%2010%20L34%2010%20L40%2016%20L34%2022%20L12%2022%20Z%22%20fill%3D%22%23b45309%22%20stroke%3D%22%23451a03%22%20stroke-width%3D%221.5%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Ctext%20x%3D%2216%22%20y%3D%2218%22%20font-size%3D%226%22%20font-weight%3D%22bold%22%20fill%3D%22%23fef3c7%22%20font-family%3D%22sans-serif%22%3EVENUE%20%E2%9E%94%3C%2Ftext%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Sign%202%20Left%20--%3E%0A%20%20%20%20%20%20%20%20%3Cpath%20d%3D%22M34%2026%20L12%2026%20L6%2032%20L12%2038%20L34%2038%20Z%22%20fill%3D%22%23b45309%22%20stroke%3D%22%23451a03%22%20stroke-width%3D%221.5%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Ctext%20x%3D%2213%22%20y%3D%2234%22%20font-size%3D%226%22%20font-weight%3D%22bold%22%20fill%3D%22%23fef3c7%22%20font-family%3D%22sans-serif%22%3E%E2%97%80%20RSVP%3C%2Ftext%3E%0A%20%20%20%20%20%20%3C%2Fsvg%3E%0A%20%20%20%20"
+        ],
+        "category": "decoration"
+      },
+      "hasInteraction": true,
+      "interaction": {
+        "type": "info",
+        "title": "Waktu & Tempat Resepsi",
+        "content": "Sabtu, 28 November 2026\nAkad Nikah: 08:00 WIB\nResepsi: 11:00 - 14:00 WIB\nLokasi: Grand Ballroom Mulia Resort & Hotel",
+        "actionButtonText": "Buka di Google Maps",
+        "actionUrl": "https://maps.google.com"
+      },
+      "editable_appearance": false,
+      "editable_content": true,
+      "contentLabel": "Detail Tanggal & Lokasi Resepsi"
+    },
+    {
+      "id": "ent-arch",
+      "name": "Gapura Pelaminan & RSVP",
+      "type": "decoration",
+      "x": 2800,
+      "y": 364,
+      "width": 80,
+      "height": 96,
+      "sprite": {
+        "id": "obj-arch",
+        "name": "Gapura Bunga / Pelaminan",
+        "type": "static",
+        "frames": [
+          "data:image/svg+xml;utf8,%0A%20%20%20%20%20%20%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2080%2096%22%20width%3D%2280%22%20height%3D%2296%22%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Arch%20Pillars%20--%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%228%22%20y%3D%2224%22%20width%3D%228%22%20height%3D%2270%22%20rx%3D%222%22%20fill%3D%22%23f8fafc%22%20stroke%3D%22%23cbd5e1%22%20stroke-width%3D%222%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Crect%20x%3D%2264%22%20y%3D%2224%22%20width%3D%228%22%20height%3D%2270%22%20rx%3D%222%22%20fill%3D%22%23f8fafc%22%20stroke%3D%22%23cbd5e1%22%20stroke-width%3D%222%22%2F%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Top%20Arch%20Curve%20--%3E%0A%20%20%20%20%20%20%20%20%3Cpath%20d%3D%22M8%2026%20Q40%20-6%2072%2026%22%20stroke%3D%22%23f8fafc%22%20stroke-width%3D%2210%22%20fill%3D%22none%22%2F%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Floral%20Garland%20--%3E%0A%20%20%20%20%20%20%20%20%3Cpath%20d%3D%22M8%2026%20Q40%20-4%2072%2026%22%20stroke%3D%22%2315803d%22%20stroke-width%3D%226%22%20fill%3D%22none%22%2F%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Flowers%20--%3E%0A%20%20%20%20%20%20%20%20%3Ccircle%20cx%3D%2220%22%20cy%3D%2218%22%20r%3D%225%22%20fill%3D%22%23f43f5e%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Ccircle%20cx%3D%2230%22%20cy%3D%2210%22%20r%3D%225.5%22%20fill%3D%22%23ec4899%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Ccircle%20cx%3D%2240%22%20cy%3D%228%22%20r%3D%226%22%20fill%3D%22%23fb7185%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2210%22%20r%3D%225.5%22%20fill%3D%22%23ec4899%22%2F%3E%0A%20%20%20%20%20%20%20%20%3Ccircle%20cx%3D%2260%22%20cy%3D%2218%22%20r%3D%225%22%20fill%3D%22%23f43f5e%22%2F%3E%0A%20%20%20%20%20%20%20%20%3C!--%20Dangling%20Bells%20--%3E%0A%20%20%20%20%20%20%20%20%3Ccircle%20cx%3D%2240%22%20cy%3D%2222%22%20r%3D%223%22%20fill%3D%22%23fbbf24%22%2F%3E%0A%20%20%20%20%20%20%3C%2Fsvg%3E%0A%20%20%20%20"
+        ],
+        "category": "decoration"
+      },
+      "hasInteraction": true,
+      "interaction": {
+        "type": "rsvp",
+        "title": "Konfirmasi Kehadiran (RSVP)",
+        "content": "Kehadiran dan doa restu Anda adalah kado terindah bagi kami. Mohon isi konfirmasi kehadiran Anda di bawah ini."
+      },
+      "editable_appearance": true,
+      "appearanceLabel": "Dekorasi Gapura Akhir",
+      "editable_content": true,
+      "contentLabel": "Pesan Konfirmasi Kehadiran"
+    }
+  ],
+  "slug": "wedding-adventure",
+  "title": "The Wedding Quest of Dimas & Sarah",
+  "subtitle": "Undangan Pernikahan Interaktif",
+  "is_template_enabled": true,
+  "rsvps": []
+}

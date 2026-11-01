@@ -18,6 +18,7 @@ export const DEFAULT_DEMO_PROJECT: PlatformerProject = {
   slug: 'wedding-adventure',
   title: 'The Wedding Quest of Dimas & Sarah',
   subtitle: 'Undangan Pernikahan Interaktif',
+  theme_type: 'platformer',
   is_template_enabled: true,
   audio: DEFAULT_PROJECT_AUDIO,
   player: {

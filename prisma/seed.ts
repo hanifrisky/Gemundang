@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
+import path from 'path';
+import fs from 'fs/promises';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { DEFAULT_DEMO_PROJECT } from '../src/lib/defaultProject';
@@ -17,21 +19,40 @@ async function main() {
   });
 
   const { slug, title, subtitle, is_template_enabled, rsvps, ...rest } = DEFAULT_DEMO_PROJECT;
-  const data = JSON.parse(JSON.stringify(rest));
+  const projectUuid = 'proj_seed_demo_platformer';
+  const storageDir = path.join(process.cwd(), 'storage', 'projects', projectUuid);
+  await fs.mkdir(storageDir, { recursive: true });
+
+  const currentFilePath = path.join(storageDir, 'current.json');
+  const cleanPayload = {
+    ...rest,
+    slug,
+    title,
+    subtitle,
+    theme_type: 'platformer',
+    is_template_enabled,
+    rsvps: [],
+  };
+  await fs.writeFile(currentFilePath, JSON.stringify(cleanPayload, null, 2), 'utf-8');
+
+  const relativePath = path.relative(process.cwd(), currentFilePath).replace(/\\/g, '/');
+
   const fields = {
     title,
     subtitle,
+    themeType: 'platformer',
+    currentFilePath: relativePath,
+    currentVersion: 1,
     isTemplateEnabled: is_template_enabled,
     isTemplate: true,
     visibility: 'PUBLIC' as const,
-    data,
     ownerId: admin.id,
   };
 
   const project = await prisma.project.upsert({
     where: { slug },
     update: fields,
-    create: { slug, ...fields },
+    create: { slug, uuid: projectUuid, ...fields },
   });
 
   await prisma.rsvp.deleteMany({ where: { projectId: project.id } });
@@ -53,4 +74,6 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

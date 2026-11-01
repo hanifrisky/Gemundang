@@ -23,26 +23,52 @@ enum Visibility {
 }
 
 model Project {
-  id                Int        @id @default(autoincrement())
-  slug              String     @unique @db.VarChar(100)
-  title             String     @db.VarChar(255)
-  subtitle          String?    @db.VarChar(255)
+  id                Int              @id @default(autoincrement())
+  uuid              String           @unique @default(uuid()) @db.VarChar(64)
+  slug              String           @unique @db.VarChar(100)
+  title             String           @db.VarChar(255)
+  subtitle          String?          @db.VarChar(255)
+  themeType         String           @default("platformer") @db.VarChar(50)
   /// Allows the simplified customization form (/template/:slug)
-  isTemplateEnabled Boolean    @default(true)
+  isTemplateEnabled Boolean          @default(true)
   /// Published as a reusable starting point that can be duplicated
-  isTemplate        Boolean    @default(false)
+  isTemplate        Boolean          @default(false)
   /// Template visibility: PRIVATE (owner only) or PUBLIC (everyone)
-  visibility        Visibility @default(PRIVATE)
-  /// player, world & entities (PlatformerProject without rsvps)
-  data              Json
+  visibility        Visibility       @default(PRIVATE)
+  
+  /// Referensi file fisik payload JSON aktif
+  currentFilePath   String           @db.VarChar(500)
+  currentVersion    Int              @default(1)
+
   ownerId           Int
-  owner             User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner             User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   rsvps             Rsvp[]
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
+  versions          ProjectVersion[]
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@index([ownerId])
   @@index([isTemplate, visibility])
+  @@index([uuid])
+}
+
+model ProjectVersion {
+  id            Int      @id @default(autoincrement())
+  projectId     Int
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  versionNumber Int
+  name          String   @db.VarChar(150)
+  filePath      String   @db.VarChar(500)
+  fileSize      Int      @default(0)
+  isLocked      Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+
+  @@unique([projectId, versionNumber])
+  @@index([projectId, createdAt])
+  @@index([projectId, isLocked])
 }
 
 enum Attendance {

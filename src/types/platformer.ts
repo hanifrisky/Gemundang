@@ -1,16 +1,23 @@
-export type SpriteType = 'static' | 'sequence';
+import {
+  BaseProject,
+  SpriteAsset,
+  SpriteType,
+  SoundAsset,
+  SoundEventType,
+  RSVPRecord,
+  EntityInteraction,
+  InteractionType
+} from './base';
 
-export type SoundEventType = 'bgm' | 'jump' | 'footstep' | 'idle' | 'proximity' | 'interact';
-
-export interface SoundAsset {
-  id: string;
-  name: string;
-  category: SoundEventType;
-  url?: string;       // base64 data URI or remote audio URL
-  presetId?: string;  // ID for procedural synth / built-in audio
-  volume?: number;    // 0.0 - 1.0 (default 1.0)
-  loop?: boolean;     // default true for bgm, false for sfx
-}
+export type {
+  SpriteAsset,
+  SpriteType,
+  SoundAsset,
+  SoundEventType,
+  RSVPRecord,
+  EntityInteraction,
+  InteractionType
+};
 
 export interface ProjectAudioConfig {
   bgm?: SoundAsset;
@@ -19,16 +26,6 @@ export interface ProjectAudioConfig {
   idle?: SoundAsset;
   proximity?: SoundAsset;
   interact?: SoundAsset;
-}
-
-export interface SpriteAsset {
-  id: string;
-  name: string;
-  type: SpriteType;
-  frames: string[]; // 1 URL for static, array of URLs for sequence
-  frameRate?: number; // frames per second (default: 8)
-  loop?: boolean; // default: true
-  category?: 'character' | 'player' | 'npc' | 'obstacle' | 'decoration' | 'background' | 'platform';
 }
 
 export interface PlayerColliderConfig {
@@ -58,45 +55,45 @@ export function getPlayerHitboxBounds(player: PlayerConfig) {
   let offTop = 0;
   let offBottom = 0;
 
-  if (
-    col &&
-    (col.left !== undefined || col.right !== undefined || col.top !== undefined || col.bottom !== undefined)
-  ) {
-    offLeft = col.left ?? 0;
-    offRight = col.right ?? 0;
-    offTop = col.top ?? 0;
-    offBottom = col.bottom ?? 0;
-  } else if (
-    col &&
-    (col.width !== undefined || col.height !== undefined || col.offsetX !== undefined || col.offsetY !== undefined)
-  ) {
-    const legacyW = col.width ?? spriteW;
-    const legacyH = col.height ?? spriteH;
-    const legacyOffX = col.offsetX ?? 0;
-    const legacyOffY = col.offsetY ?? 0;
-
-    offLeft = -legacyOffX;
-    offRight = (legacyOffX + legacyW) - spriteW;
-    offTop = -legacyOffY;
-    offBottom = (legacyOffY + legacyH) - spriteH;
+  if (col) {
+    if (col.left !== undefined || col.right !== undefined || col.top !== undefined || col.bottom !== undefined) {
+      offLeft = col.left ?? 0;
+      offRight = col.right ?? 0;
+      offTop = col.top ?? 0;
+      offBottom = col.bottom ?? 0;
+    } else if (col.width !== undefined || col.height !== undefined) {
+      const w = col.width ?? spriteW;
+      const h = col.height ?? spriteH;
+      const ox = col.offsetX ?? 0;
+      const oy = col.offsetY ?? 0;
+      offLeft = ox;
+      offRight = -(spriteW - (ox + w));
+      offTop = oy;
+      offBottom = -(spriteH - (oy + h));
+    }
   }
 
-  const hitboxWidth = Math.max(6, spriteW + offLeft + offRight);
-  const hitboxHeight = Math.max(6, spriteH + offTop + offBottom);
-  const offsetX = -offLeft;
-  const offsetY = -offTop;
+  const effectiveX = offLeft;
+  const effectiveY = offTop;
+  const effectiveWidth = Math.max(8, spriteW + offRight - offLeft);
+  const effectiveHeight = Math.max(8, spriteH + offBottom - offTop);
 
   return {
-    spriteW,
-    spriteH,
+    effectiveX,
+    effectiveY,
+    effectiveWidth,
+    effectiveHeight,
     offLeft,
     offRight,
     offTop,
     offBottom,
-    hitboxWidth,
-    hitboxHeight,
-    offsetX,
-    offsetY
+    // Alias untuk kompatibilitas kode lama
+    spriteW,
+    spriteH,
+    hitboxWidth: effectiveWidth,
+    hitboxHeight: effectiveHeight,
+    offsetX: effectiveX,
+    offsetY: effectiveY
   };
 }
 
@@ -104,15 +101,15 @@ export interface PlayerConfig {
   canJump: boolean;
   jumpForce: number;
   speed: number;
+  width?: number;  // Visual rendering width (default: 44)
+  height?: number; // Visual rendering height (default: 60)
+  startX?: number; // Initial X position in the world
+  startY?: number; // Initial Y position in the world
+  collider?: PlayerColliderConfig;
   idleSprite: SpriteAsset;
   runSprite: SpriteAsset;
   editable_appearance: boolean;
   editableLabel?: string;
-  startX?: number;
-  startY?: number;
-  width?: number; // Lebar visual gambar sprite (default: 44)
-  height?: number; // Tinggi visual gambar sprite (default: 60)
-  collider?: PlayerColliderConfig;
 }
 
 export interface ParallaxLayer {
@@ -123,17 +120,6 @@ export interface ParallaxLayer {
   yOffset: number;
   editable_appearance: boolean;
   editableLabel?: string;
-}
-
-export type InteractionType = 'info' | 'image' | 'video' | 'rsvp';
-
-export interface EntityInteraction {
-  type: InteractionType;
-  title?: string;
-  content?: string;
-  mediaUrl?: string; // Image URL or Video URL (YouTube embed or MP4)
-  actionButtonText?: string;
-  actionUrl?: string;
 }
 
 export interface InteractiveEntity {
@@ -168,21 +154,8 @@ export interface Platform {
   tileTextureUrl?: string;
 }
 
-export interface RSVPRecord {
-  id: string;
-  guestName: string;
-  attendance: 'hadir' | 'tidak_hadir' | 'ragu';
-  pax: number;
-  message: string;
-  createdAt: string;
-}
-
-export interface PlatformerProject {
-  slug: string;
-  title: string;
-  subtitle?: string;
-  is_template_enabled: boolean;
-  musicUrl?: string;
+export interface PlatformerProject extends BaseProject {
+  theme_type: 'platformer';
   player: PlayerConfig;
   world: {
     groundMode: 'platform' | 'endless';
@@ -193,5 +166,4 @@ export interface PlatformerProject {
   };
   entities: InteractiveEntity[];
   audio?: ProjectAudioConfig;
-  rsvps?: RSVPRecord[];
 }

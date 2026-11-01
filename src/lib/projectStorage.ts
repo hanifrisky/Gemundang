@@ -1,24 +1,37 @@
 'use server';
 
+import path from 'path';
 import { prisma } from './prisma';
 import { auth } from '@/auth';
-import { DEFAULT_DEMO_PROJECT, isValidSlug } from './defaultProject';
-import type { PlatformerProject } from '@/types/platformer';
-import type { Prisma, Project, Rsvp } from '@/generated/prisma/client';
+import { isValidSlug } from './defaultProject';
+import type { AnyGemUndangProject } from '@/types';
+import type { GameThemeType } from '@/types/base';
+import { getDefaultProjectForTheme } from '@/themes/defaults';
+import {
+  ensureProjectDirectories,
+  writeAtomicJsonFile,
+  readProjectJsonFile,
+  createVersionSnapshot,
+  deleteProjectStorageFolder,
+  type ProjectVersionItem
+} from './fileStorage';
+import type { Project, Rsvp } from '@/generated/prisma/client';
 
 export type TemplateVisibility = 'PRIVATE' | 'PUBLIC';
 
 export type ProjectSummary = {
+  id: number;
+  uuid: string;
   slug: string;
   title: string;
   subtitle?: string;
+  theme_type: GameThemeType;
   is_template_enabled: boolean;
   isTemplate: boolean;
   visibility: TemplateVisibility;
   ownerName: string;
   isOwner: boolean;
-  entityCount: number;
-  platformCount: number;
+  currentVersion: number;
   rsvpCount: number;
 };
 
@@ -36,58 +49,25 @@ async function requireUserId(): Promise<number> {
   return id;
 }
 
-function toPlatformerProject(row: ProjectRow): PlatformerProject {
-  const data = row.data as unknown as Omit<
-    PlatformerProject,
-    'slug' | 'title' | 'subtitle' | 'is_template_enabled' | 'rsvps'
-  >;
-  return {
-    ...data,
-    slug: row.slug,
-    title: row.title,
-    subtitle: row.subtitle ?? undefined,
-    is_template_enabled: row.isTemplateEnabled,
-    rsvps: (row.rsvps ?? []).map((r) => ({
-      id: `rsvp-${r.id}`,
-      guestName: r.guestName,
-      attendance: r.attendance,
-      pax: r.pax,
-      message: r.message,
-      createdAt: r.createdAt.toLocaleString('id-ID'),
-    })),
-  } as PlatformerProject;
-}
-
 function toSummary(
   row: Project & { owner: { name: string }; _count: { rsvps: number } },
   userId: number | null
 ): ProjectSummary {
-  const data = row.data as unknown as Partial<PlatformerProject>;
   const isOwner = row.ownerId === userId;
   return {
+    id: row.id,
+    uuid: row.uuid,
     slug: row.slug,
     title: row.title,
     subtitle: row.subtitle ?? undefined,
+    theme_type: (row.themeType as GameThemeType) || 'platformer',
     is_template_enabled: row.isTemplateEnabled,
     isTemplate: row.isTemplate,
     visibility: row.visibility,
     ownerName: row.owner.name,
     isOwner,
-    entityCount: data.entities?.length ?? 0,
-    platformCount: data.world?.platforms?.length ?? 0,
-    // Guest RSVP data is only visible to the owner
+    currentVersion: row.currentVersion,
     rsvpCount: isOwner ? row._count.rsvps : 0,
-  };
-}
-
-function projectFields(project: PlatformerProject) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { slug, title, subtitle, is_template_enabled, rsvps, ...rest } = project;
-  return {
-    title: String(title ?? '').slice(0, 255) || 'Projek Undangan',
-    subtitle: subtitle ? String(subtitle).slice(0, 255) : null,
-    isTemplateEnabled: is_template_enabled ?? true,
-    data: JSON.parse(JSON.stringify(rest)) as Prisma.InputJsonValue,
   };
 }
 
@@ -177,18 +157,39 @@ export async function isSlugAvailable(slug: string, currentSlugToIgnore?: string
 }
 
 // Public invitation view: anyone with the link can play. RSVPs are only included for the owner.
-export async function getProjectBySlug(slug: string): Promise<PlatformerProject | null> {
+export async function getProjectBySlug(slug: string): Promise<AnyGemUndangProject | null> {
   const userId = await currentUserId();
   const row = await prisma.project.findUnique({
     where: { slug },
     include: { rsvps: { orderBy: { createdAt: 'desc' } } },
   });
   if (!row) return null;
-  return toPlatformerProject(row.ownerId === userId ? row : { ...row, rsvps: [] });
+
+  const filePayload = await readProjectJsonFile<AnyGemUndangProject>(row.currentFilePath);
+  if (!filePayload) return null;
+
+  const rsvps = (row.ownerId === userId ? (row.rsvps ?? []) : []).map((r) => ({
+    id: `rsvp-${r.id}`,
+    guestName: r.guestName,
+    attendance: r.attendance,
+    pax: r.pax,
+    message: r.message,
+    createdAt: r.createdAt.toLocaleString('id-ID'),
+  }));
+
+  return {
+    ...filePayload,
+    slug: row.slug,
+    title: row.title,
+    subtitle: row.subtitle ?? undefined,
+    theme_type: (row.themeType as GameThemeType) || 'platformer',
+    is_template_enabled: row.isTemplateEnabled,
+    rsvps,
+  } as AnyGemUndangProject;
 }
 
 export type EditableProjectResult =
-  | { status: 'ok'; project: PlatformerProject }
+  | { status: 'ok'; project: AnyGemUndangProject; currentVersion: number }
   | { status: 'unauthenticated' }
   | { status: 'forbidden' }
   | { status: 'not_found' };
@@ -203,18 +204,69 @@ export async function getProjectForEdit(slug: string): Promise<EditableProjectRe
   });
   if (!row) return { status: 'not_found' };
   if (row.ownerId !== userId) return { status: 'forbidden' };
-  return { status: 'ok', project: toPlatformerProject(row) };
+
+  const filePayload = await readProjectJsonFile<AnyGemUndangProject>(row.currentFilePath);
+  if (!filePayload) return { status: 'not_found' };
+
+  const rsvps = (row.rsvps ?? []).map((r) => ({
+    id: `rsvp-${r.id}`,
+    guestName: r.guestName,
+    attendance: r.attendance,
+    pax: r.pax,
+    message: r.message,
+    createdAt: r.createdAt.toLocaleString('id-ID'),
+  }));
+
+  return {
+    status: 'ok',
+    currentVersion: row.currentVersion,
+    project: {
+      ...filePayload,
+      slug: row.slug,
+      title: row.title,
+      subtitle: row.subtitle ?? undefined,
+      theme_type: (row.themeType as GameThemeType) || 'platformer',
+      is_template_enabled: row.isTemplateEnabled,
+      rsvps,
+    } as AnyGemUndangProject,
+  };
 }
 
-// Update an existing project owned by the user (RSVPs and ownership are never changed here)
-export async function saveProject(project: PlatformerProject): Promise<boolean> {
+// Update an existing project owned by the user (Fast Save to current.json)
+export async function saveProject(project: AnyGemUndangProject): Promise<boolean> {
   try {
     const userId = await requireUserId();
-    const result = await prisma.project.updateMany({
+    const row = await prisma.project.findFirst({
       where: { slug: project.slug, ownerId: userId },
-      data: projectFields(project),
     });
-    return result.count === 1;
+    if (!row) return false;
+
+    // Hapus rsvps dari payload file agar tidak duplikasi
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { slug, title, subtitle, is_template_enabled, rsvps, ...rest } = project;
+    const cleanPayload = {
+      ...rest,
+      slug: row.slug,
+      title: project.title,
+      subtitle: project.subtitle,
+      theme_type: row.themeType,
+      is_template_enabled: project.is_template_enabled,
+    };
+
+    // Tulis ke current.json secara atomik
+    await writeAtomicJsonFile(row.currentFilePath, cleanPayload);
+
+    // Update metadata di MySQL
+    await prisma.project.update({
+      where: { id: row.id },
+      data: {
+        title: String(project.title ?? '').slice(0, 255) || 'Projek Undangan',
+        subtitle: project.subtitle ? String(project.subtitle).slice(0, 255) : null,
+        isTemplateEnabled: project.is_template_enabled ?? true,
+      },
+    });
+
+    return true;
   } catch (err) {
     console.error('Failed to save project:', err);
     return false;
@@ -225,10 +277,11 @@ export type CreateProjectResult =
   | { ok: true; slug: string }
   | { ok: false; error: string };
 
-// Create a new project for the user, optionally duplicated from a visible template
+// Create a new project for the user, optionally duplicated from a visible template or with chosen theme
 export async function createNewProject(input: {
   slug: string;
   title: string;
+  theme_type?: GameThemeType;
   isTemplateEnabled?: boolean;
   isTemplate?: boolean;
   visibility?: TemplateVisibility;
@@ -238,31 +291,64 @@ export async function createNewProject(input: {
   if (!userId) return { ok: false, error: 'Silakan login terlebih dahulu.' };
   if (!(await isSlugAvailable(input.slug))) return { ok: false, error: 'Slug tidak valid atau sudah dipakai.' };
 
-  let base: PlatformerProject = JSON.parse(JSON.stringify(DEFAULT_DEMO_PROJECT));
+  const chosenTheme = input.theme_type || 'platformer';
+  let base: AnyGemUndangProject = getDefaultProjectForTheme(chosenTheme, input.slug, input.title);
+
   if (input.fromTemplateSlug) {
     const tpl = await prisma.project.findUnique({ where: { slug: input.fromTemplateSlug } });
     const canUse = tpl && tpl.isTemplate && (tpl.visibility === 'PUBLIC' || tpl.ownerId === userId);
     if (!canUse) return { ok: false, error: 'Template tidak ditemukan atau bersifat private.' };
-    base = toPlatformerProject({ ...tpl, rsvps: [] });
+
+    const tplPayload = await readProjectJsonFile<AnyGemUndangProject>(tpl.currentFilePath);
+    if (tplPayload) {
+      base = tplPayload;
+    }
   }
 
-  const project: PlatformerProject = {
+  const projectTitle = input.title.trim() || 'Projek Undangan Baru';
+  const initialPayload = {
     ...base,
     slug: input.slug,
-    title: input.title.trim() || 'Projek Undangan Baru',
+    title: projectTitle,
+    theme_type: chosenTheme,
     is_template_enabled: input.isTemplateEnabled ?? base.is_template_enabled ?? true,
     rsvps: [],
-  };
+  } as AnyGemUndangProject;
 
-  await prisma.project.create({
+  // Buat UUID projek
+  const projectUuid = `proj_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  const { projectDir } = await ensureProjectDirectories(projectUuid);
+  const currentFilePath = path.join(projectDir, 'current.json');
+  const relativeCurrentFilePath = path.relative(process.cwd(), currentFilePath).replace(/\\/g, '/');
+
+  // Tulis file aktif perdana
+  await writeAtomicJsonFile(currentFilePath, initialPayload);
+
+  // Buat record di DB
+  const createdProject = await prisma.project.create({
     data: {
+      uuid: projectUuid,
       slug: input.slug,
-      ...projectFields(project),
+      title: projectTitle,
+      themeType: chosenTheme,
+      currentFilePath: relativeCurrentFilePath,
+      currentVersion: 1,
+      isTemplateEnabled: input.isTemplateEnabled ?? true,
       isTemplate: input.isTemplate ?? false,
       visibility: input.visibility === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE',
       ownerId: userId,
     },
   });
+
+  // Otomatis buat snapshot v1 perdana
+  await createVersionSnapshot(
+    createdProject.id,
+    createdProject.uuid,
+    initialPayload,
+    'Versi Awal (Dibuat)',
+    false
+  );
+
   return { ok: true, slug: input.slug };
 }
 
@@ -284,8 +370,151 @@ export async function updateTemplateSettings(
 
 export async function deleteProject(slug: string): Promise<boolean> {
   const userId = await requireUserId();
-  const result = await prisma.project.deleteMany({ where: { slug, ownerId: userId } });
-  return result.count === 1;
+  const row = await prisma.project.findFirst({
+    where: { slug, ownerId: userId },
+    select: { id: true, uuid: true },
+  });
+  if (!row) return false;
+
+  await prisma.project.delete({ where: { id: row.id } });
+  await deleteProjectStorageFolder(row.uuid);
+  return true;
+}
+
+// =====================================================================
+// VERSIONING SERVER ACTIONS
+// =====================================================================
+
+export async function getProjectVersions(slug: string): Promise<ProjectVersionItem[]> {
+  const userId = await currentUserId();
+  if (!userId) return [];
+
+  const proj = await prisma.project.findFirst({
+    where: { slug, ownerId: userId },
+    select: { id: true },
+  });
+  if (!proj) return [];
+
+  const rows = await prisma.projectVersion.findMany({
+    where: { projectId: proj.id },
+    orderBy: { versionNumber: 'desc' },
+  });
+
+  return rows.map((r) => ({
+    id: r.id,
+    versionNumber: r.versionNumber,
+    name: r.name,
+    filePath: r.filePath,
+    fileSize: r.fileSize,
+    isLocked: r.isLocked,
+    createdAt: r.createdAt.toLocaleString('id-ID'),
+  }));
+}
+
+export async function createNamedVersion(
+  slug: string,
+  versionName: string,
+  isLocked = false
+): Promise<{ ok: boolean; versionItem?: ProjectVersionItem; error?: string }> {
+  try {
+    const userId = await requireUserId();
+    const proj = await prisma.project.findFirst({
+      where: { slug, ownerId: userId },
+    });
+    if (!proj) return { ok: false, error: 'Projek tidak ditemukan.' };
+
+    const payload = await readProjectJsonFile<AnyGemUndangProject>(proj.currentFilePath);
+    if (!payload) return { ok: false, error: 'File projek aktif tidak terbaca.' };
+
+    const versionItem = await createVersionSnapshot(
+      proj.id,
+      proj.uuid,
+      payload,
+      versionName,
+      isLocked
+    );
+    if (!versionItem) return { ok: false, error: 'Gagal membuat snapshot versi.' };
+
+    return { ok: true, versionItem };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || 'Gagal membuat versi baru.' };
+  }
+}
+
+export async function toggleVersionLock(versionId: number): Promise<{ ok: boolean; isLocked?: boolean }> {
+  try {
+    const userId = await requireUserId();
+    const v = await prisma.projectVersion.findUnique({
+      where: { id: versionId },
+      include: { project: { select: { ownerId: true } } },
+    });
+    if (!v || v.project.ownerId !== userId) return { ok: false };
+
+    const updated = await prisma.projectVersion.update({
+      where: { id: versionId },
+      data: { isLocked: !v.isLocked },
+    });
+    return { ok: true, isLocked: updated.isLocked };
+  } catch (err) {
+    return { ok: false };
+  }
+}
+
+export async function renameVersion(versionId: number, newName: string): Promise<boolean> {
+  try {
+    const userId = await requireUserId();
+    const v = await prisma.projectVersion.findUnique({
+      where: { id: versionId },
+      include: { project: { select: { ownerId: true } } },
+    });
+    if (!v || v.project.ownerId !== userId) return false;
+
+    const trimmed = newName.trim();
+    if (!trimmed) return false;
+
+    await prisma.projectVersion.update({
+      where: { id: versionId },
+      data: { name: trimmed.slice(0, 150) },
+    });
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+export async function restoreVersion(slug: string, versionId: number): Promise<{ ok: boolean; restoredProject?: AnyGemUndangProject; error?: string }> {
+  try {
+    const userId = await requireUserId();
+    const proj = await prisma.project.findFirst({
+      where: { slug, ownerId: userId },
+    });
+    if (!proj) return { ok: false, error: 'Projek tidak ditemukan.' };
+
+    const targetVersion = await prisma.projectVersion.findFirst({
+      where: { id: versionId, projectId: proj.id },
+    });
+    if (!targetVersion) return { ok: false, error: 'Versi target tidak ditemukan.' };
+
+    const snapshotPayload = await readProjectJsonFile<AnyGemUndangProject>(targetVersion.filePath);
+    if (!snapshotPayload) return { ok: false, error: 'File versi korup atau tidak ditemukan.' };
+
+    // Tulis kembali payload snapshot ke current.json
+    await writeAtomicJsonFile(proj.currentFilePath, snapshotPayload);
+
+    // Update versi aktif di metadata DB
+    await prisma.project.update({
+      where: { id: proj.id },
+      data: {
+        currentVersion: targetVersion.versionNumber,
+        title: snapshotPayload.title || proj.title,
+        subtitle: snapshotPayload.subtitle ?? proj.subtitle,
+      },
+    });
+
+    return { ok: true, restoredProject: snapshotPayload };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || 'Gagal memulihkan versi.' };
+  }
 }
 
 // Add RSVP record (public: guests don't need an account)

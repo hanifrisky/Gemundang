@@ -39,6 +39,8 @@ import {
 } from '@/lib/projectStorage';
 import { getCurrentUser, logoutUser, type CurrentUser } from '@/lib/authActions';
 import { isValidSlug } from '@/lib/defaultProject';
+import { GameThemeType } from '@/types/base';
+import { ALL_THEMES, getThemeDefinition } from '@/themes/registry';
 
 const PAGE_SIZE = 6;
 
@@ -87,6 +89,7 @@ export default function HomePage() {
   // Create Project Form State
   const [newTitle, setNewTitle] = useState('');
   const [newSlug, setNewSlug] = useState('');
+  const [selectedTheme, setSelectedTheme] = useState<GameThemeType>('platformer');
   const [isTemplateEnabled, setIsTemplateEnabled] = useState(true);
   const [publishAsTemplate, setPublishAsTemplate] = useState(false);
   const [newVisibility, setNewVisibility] = useState<TemplateVisibility>('PRIVATE');
@@ -215,6 +218,7 @@ export default function HomePage() {
     const res = await createNewProject({
       slug: newSlug,
       title: newTitle.trim() || 'Projek Undangan Baru',
+      theme_type: selectedTheme,
       isTemplateEnabled,
       isTemplate: publishAsTemplate,
       visibility: newVisibility,
@@ -372,6 +376,48 @@ export default function HomePage() {
                 <button type="button" onClick={() => setFromTemplate(null)} className="hover:text-white cursor-pointer" title="Batalkan template">
                   <X className="w-4 h-4" />
                 </button>
+              </div>
+            )}
+
+            {/* Pilihan Tema Undangan */}
+            {!fromTemplate && (
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-slate-300">
+                  Pilih Format / Gaya Undangan
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {ALL_THEMES.map((th) => {
+                    const Icon = th.icon;
+                    const isSelected = selectedTheme === th.id;
+                    return (
+                      <button
+                        key={th.id}
+                        type="button"
+                        onClick={() => setSelectedTheme(th.id)}
+                        className={`p-3 rounded-2xl border text-left flex items-start gap-3 transition cursor-pointer ${
+                          isSelected
+                            ? 'border-amber-400 bg-amber-500/10 ring-1 ring-amber-400/50'
+                            : 'border-slate-800 bg-slate-800/40 hover:border-slate-700 hover:bg-slate-800/70'
+                        }`}
+                      >
+                        <div className={`p-2.5 rounded-xl shrink-0 ${isSelected ? 'bg-amber-400 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300'}`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-xs font-bold text-white">{th.name}</span>
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${isSelected ? 'bg-amber-400/20 text-amber-300' : 'bg-slate-800 text-slate-400'}`}>
+                              {th.badge}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                            {th.description}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -570,10 +616,19 @@ export default function HomePage() {
                     >
                       <div>
                         <div className="flex items-center justify-between mb-2 gap-2">
-                          <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 truncate">
-                            /{proj.slug}
-                          </span>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 truncate">
+                              /{proj.slug}
+                            </span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                              proj.theme_type === 'vertical_scroll'
+                                ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'
+                                : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                            }`}>
+                              {getThemeDefinition(proj.theme_type).badge}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
                             {proj.isTemplate && <VisibilityBadge visibility={proj.visibility} />}
                             <button
                               onClick={() => handleDelete(proj)}
@@ -591,11 +646,9 @@ export default function HomePage() {
                         </p>
 
                         <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-4 text-xs text-slate-400">
-                          <span><b>{proj.entityCount}</b> Objek</span>
+                          <span className="font-mono text-amber-300"><b>v{proj.currentVersion}</b> Versi</span>
                           <span>•</span>
-                          <span><b>{proj.platformCount}</b> Platform</span>
-                          <span>•</span>
-                          <span><b>{proj.rsvpCount}</b> RSVP</span>
+                          <span><b>{proj.rsvpCount}</b> RSVP Tamu</span>
                         </div>
 
                         {/* Template Visibility Switcher */}
@@ -742,10 +795,19 @@ export default function HomePage() {
                       className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-3xl p-5 flex flex-col justify-between shadow-xl transition space-y-4"
                     >
                       <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[11px] text-slate-400">
-                            oleh <b className="text-slate-300">{tpl.isOwner ? 'Anda' : tpl.ownerName}</b>
-                          </span>
+                        <div className="flex items-center justify-between mb-2 gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[11px] text-slate-400">
+                              oleh <b className="text-slate-300">{tpl.isOwner ? 'Anda' : tpl.ownerName}</b>
+                            </span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                              tpl.theme_type === 'vertical_scroll'
+                                ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'
+                                : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                            }`}>
+                              {getThemeDefinition(tpl.theme_type).badge}
+                            </span>
+                          </div>
                           <VisibilityBadge visibility={tpl.visibility} />
                         </div>
                         <h3 className="text-base font-bold text-white line-clamp-1">{tpl.title}</h3>
@@ -753,9 +815,9 @@ export default function HomePage() {
                           {tpl.subtitle || 'Petualangan platformer interaktif untuk para tamu undangan.'}
                         </p>
                         <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-4 text-xs text-slate-400">
-                          <span><b>{tpl.entityCount}</b> Objek</span>
+                          <span className="font-mono text-amber-300"><b>v{tpl.currentVersion}</b> Versi</span>
                           <span>•</span>
-                          <span><b>{tpl.platformCount}</b> Platform</span>
+                          <span>Siap Digunakan</span>
                         </div>
                       </div>
 
